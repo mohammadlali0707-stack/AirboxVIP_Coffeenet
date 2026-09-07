@@ -115,17 +115,22 @@ jobs:
             printf '%s\n' 'STEP 4: Post final report with commit hash and a summary table of what was done.'
           } > /tmp/prompt.txt
           printf 'Prompt: %s lines\n' "$(wc -l < /tmp/prompt.txt)"
+          # Calculate acc_index: spread issues across 9 accounts for true parallelism
+          ACC_IDX=$(( ISSUE_NUM % 9 ))
+          echo "acc_index=$ACC_IDX" >> "$GITHUB_OUTPUT"
 
       - name: Dispatch to agw-workers
         id: dispatch
         env:
           GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
         run: |
+          ACC_IDX="${{ steps.prompt.outputs.acc_index }}"
+          echo "Dispatching to runner slot acc_index=$ACC_IDX"
           PROMPT=$(cat /tmp/prompt.txt)
           gh workflow run agw-worker.yml \
             --repo Mohammadlali/agw-workers \
             --field "prompt=$PROMPT" \
-            --field "acc_index=0" \
+            --field "acc_index=$ACC_IDX" \
             --field "callback_id=av-${{ github.event.issue.number }}-${{ github.run_id }}"
           sleep 10
           RUN_ID=$(gh run list --repo Mohammadlali/agw-workers \
@@ -157,7 +162,7 @@ jobs:
           OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
           [ -n "$OUT" ] && head -c 58000 "$OUT" > /tmp/final.txt || printf '%s\n' '(no output)' > /tmp/final.txt
           WORKER_URL="https://github.com/Mohammadlali/agw-workers/actions/runs/$WORKER_RUN"
-          printf '%s\n\n---\n*AGY worker: %s*\n' "$(cat /tmp/final.txt)" "$WORKER_URL" > /tmp/comment.txt
+          printf '%s\n\n---\n*AGY worker: %s | acc_index: ${{ steps.prompt.outputs.acc_index }}*\n' "$(cat /tmp/final.txt)" "$WORKER_URL" > /tmp/comment.txt
           gh issue comment "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" \
             --body-file /tmp/comment.txt
