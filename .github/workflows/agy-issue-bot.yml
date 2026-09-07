@@ -84,54 +84,70 @@ jobs:
             printf '%s\n' '  Auth: Bearer ${AIRBOXVIP_PAT}'
             printf '%s\n' '  PATCH comment_id to tick [x] after each step.'
             printf '%s\n' 'STEP 1: Implement tasks.'
-            printf '%s\n' 'STEP 2: Run python3 Tools/run_gates.py (must pass).'
+            printf '%s\n' 'STEP 2: python3 Tools/run_gates.py (must pass).'
             printf '%s\n' 'STEP 3: git add -A && git commit && git push origin main'
             printf '%s\n' 'STEP 4: Post final report with commit hash.'
           } > /tmp/prompt.txt
           ACC_IDX=$(( ISSUE_NUM % 9 ))
           echo "acc_index=$ACC_IDX" >> "$GITHUB_OUTPUT"
 
-      - name: Dispatch to agw-workers
+      - name: Dispatch, wait and collect
         id: dispatch
         env:
-          GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
+          ACC0_PAT: ${{ secrets.ACC0_PAT }}
+          ACC1_PAT: ${{ secrets.ACC1_PAT }}
+          ACC2_PAT: ${{ secrets.ACC2_PAT }}
+          ACC3_PAT: ${{ secrets.ACC3_PAT }}
+          ACC4_PAT: ${{ secrets.ACC4_PAT }}
+          ACC5_PAT: ${{ secrets.ACC5_PAT }}
+          ACC6_PAT: ${{ secrets.ACC6_PAT }}
+          ACC7_PAT: ${{ secrets.ACC7_PAT }}
+          ACC8_PAT: ${{ secrets.ACC8_PAT }}
         run: |
+          ACC_IDX="${{ steps.prompt.outputs.acc_index }}"
+          case $ACC_IDX in
+            0) DISPATCH_REPO="Mohammadlali/agw-workers";           DISPATCH_TOKEN="$ACC0_PAT" ;;
+            1) DISPATCH_REPO="momonakikugava-pixel/agw-workers";   DISPATCH_TOKEN="$ACC1_PAT" ;;
+            2) DISPATCH_REPO="lali94m-max/agw-workers";            DISPATCH_TOKEN="$ACC2_PAT" ;;
+            3) DISPATCH_REPO="ngocgminh5-debug/agw-workers";       DISPATCH_TOKEN="$ACC3_PAT" ;;
+            4) DISPATCH_REPO="hmmletssee7-design/agw-workers";     DISPATCH_TOKEN="$ACC4_PAT" ;;
+            5) DISPATCH_REPO="kidding602/agw-workers";             DISPATCH_TOKEN="$ACC5_PAT" ;;
+            6) DISPATCH_REPO="mohammadlali0707-stack/agw-workers"; DISPATCH_TOKEN="$ACC6_PAT" ;;
+            7) DISPATCH_REPO="mohammad97okk/agw-workers";          DISPATCH_TOKEN="$ACC7_PAT" ;;
+            8) DISPATCH_REPO="moradzahra85-png/agw-workers";       DISPATCH_TOKEN="$ACC8_PAT" ;;
+          esac
+          export GH_TOKEN="$DISPATCH_TOKEN"
+          echo "Dispatching issue #${{ github.event.issue.number }} to $DISPATCH_REPO (acc=$ACC_IDX)"
           PROMPT=$(cat /tmp/prompt.txt)
           gh workflow run agw-worker.yml \
-            --repo Mohammadlali/agw-workers \
+            --repo "$DISPATCH_REPO" \
             --field "prompt=$PROMPT" \
-            --field "acc_index=${{ steps.prompt.outputs.acc_index }}" \
+            --field "acc_index=0" \
             --field "callback_id=av-${{ github.event.issue.number }}-${{ github.run_id }}"
           sleep 10
-          RUN_ID=$(gh run list --repo Mohammadlali/agw-workers \
+          RUN_ID=$(gh run list --repo "$DISPATCH_REPO" \
             --workflow agw-worker.yml --limit 1 --json databaseId -q '.[0].databaseId')
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "dispatch_repo=$DISPATCH_REPO" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for worker
-        env:
-          GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
-        run: |
-          RID="${{ steps.dispatch.outputs.run_id }}"
           for i in $(seq 1 40); do
-            ST=$(gh run view "$RID" --repo Mohammadlali/agw-workers --json status -q '.status')
+            ST=$(gh run view "$RUN_ID" --repo "$DISPATCH_REPO" --json status -q '.status')
             echo "[$i/40] $ST"
             [ "$ST" = "completed" ] && break
             sleep 30
           done
 
-      - name: Download and post result
+          mkdir -p /tmp/agy-out
+          gh run download "$RUN_ID" --repo "$DISPATCH_REPO" --dir /tmp/agy-out 2>/dev/null || true
+          OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
+          [ -n "$OUT" ] && head -c 58000 "$OUT" > /tmp/final.txt || printf '%s\n' '(no output)' > /tmp/final.txt
+
+      - name: Post result
         if: github.event_name != 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MOHAMMADLALI_PAT: ${{ secrets.MOHAMMADLALI_PAT }}
-          WORKER_RUN: ${{ steps.dispatch.outputs.run_id }}
         run: |
-          mkdir -p /tmp/agy-out
-          GH_TOKEN="$MOHAMMADLALI_PAT" gh run download "$WORKER_RUN" \
-            --repo Mohammadlali/agw-workers --dir /tmp/agy-out 2>/dev/null || true
-          OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
-          [ -n "$OUT" ] && head -c 58000 "$OUT" > /tmp/final.txt || printf '%s\n' '(no output)' > /tmp/final.txt
-          WORKER_URL="https://github.com/Mohammadlali/agw-workers/actions/runs/$WORKER_RUN"
+          WORKER_URL="https://github.com/${{ steps.dispatch.outputs.dispatch_repo }}/actions/runs/${{ steps.dispatch.outputs.run_id }}"
           printf '%s\n\n---\n*AGY worker: %s | acc: ${{ steps.prompt.outputs.acc_index }}*\n' "$(cat /tmp/final.txt)" "$WORKER_URL" > /tmp/comment.txt
           gh issue comment "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" \
