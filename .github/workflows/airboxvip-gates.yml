@@ -1,0 +1,32 @@
+name: AirboxVIP Verification Gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml pytest 2>/dev/null || true
+          if [ -f requirements.txt ]; then pip install -r requirements.txt 2>/dev/null || true; fi
+          if [ -f bot/requirements.txt ]; then pip install -r bot/requirements.txt 2>/dev/null || true; fi
+
+      - name: Run Master Gates
+        run: python3 Tools/run_gates.py
