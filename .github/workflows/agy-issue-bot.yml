@@ -137,9 +137,8 @@ jobs:
             --repo Mohammadlali/agw-workers --dir /tmp/agy-out 2>/dev/null || true
           OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
           [ -n "$OUT" ] && head -c 58000 "$OUT" > /tmp/final.txt || printf '%s\n' '(no output)' > /tmp/final.txt
+          WORKER_URL="https://github.com/Mohammadlali/agw-workers/actions/runs/$WORKER_RUN"
+          printf '%s\n\n---\n*AGY worker: %s*\n' "$(cat /tmp/final.txt)" "$WORKER_URL" > /tmp/comment.txt
           gh issue comment "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" \
-            --body "$(cat /tmp/final.txt)
-
----
-*AGY worker: https://github.com/Mohammadlali/agw-workers/actions/runs/$WORKER_RUN*"
+            --body-file /tmp/comment.txt
