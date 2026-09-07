@@ -40,7 +40,6 @@ jobs:
       - name: Build prompt
         id: prompt
         env:
-          AIRBOXVIP_TOKEN: ${{ secrets.AIRBOXVIP_PAT }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUM: ${{ github.event.issue.number }}
@@ -54,15 +53,15 @@ jobs:
           README=$(cat README.md 2>/dev/null | sanitize | head -50 || printf '%s' '(not found)')
           {
             printf '%s\n' 'You are AGY, an AI software engineer for AirboxVIP-Coffeenet.'
-            printf '%s\n' 'This is a Telegram bot for managing WiFi at coffee shops.'
+            printf '%s\n' 'This is a Telegram bot for managing WiFi vouchers at coffee shops.'
             printf '%s\n' ''
             printf '%s\n' '=== CREDENTIALS ==='
-            printf 'AIRBOXVIP_TOKEN: %s\n' "$AIRBOXVIP_TOKEN"
             printf 'REPO: %s\n' "$REPO"
             printf 'ISSUE_NUM: %s\n' "$ISSUE_NUM"
+            printf '%s\n' 'REPO_TOKEN: use secret AIRBOXVIP_PAT from your worker environment (never print it)'
             printf '%s\n' ''
             printf '%s\n' '=== GIT SETUP ==='
-            printf 'git clone https://x-access-token:%s@github.com/%s.git /tmp/repo\n' "$AIRBOXVIP_TOKEN" "$REPO"
+            printf '%s\n' 'git clone https://x-access-token:${AIRBOXVIP_PAT}@github.com/momonakikugava-pixel/AirboxVIP_Coffeenet.git /tmp/repo'
             printf '%s\n' 'cd /tmp/repo'
             printf '%s\n' "git config user.email 'agy-bot@airboxvip.local'"
             printf '%s\n' "git config user.name 'AGY Bot'"
@@ -79,43 +78,16 @@ jobs:
             fi
             printf '%s\n' ''
             printf '%s\n' '=== REQUIRED STEPS ==='
-            printf '%s\n' ''
-            printf '%s\n' 'STEP 0: Clone repo. Read relevant files. Then post a DETAILED planning checklist.'
-            printf '%s\n' ''
-            printf '%s\n' '  CHECKLIST REQUIREMENTS (read this carefully):'
-            printf '%s\n' '  - Each item must name the EXACT file(s) and function(s) involved'
-            printf '%s\n' '  - Each item must state what you will DO and what evidence proves it done'
-            printf '%s\n' '  - Items should be specific enough that a stranger can verify completion'
-            printf '%s\n' '  - BAD:  - [ ] Understand task'
-            printf '%s\n' '  - BAD:  - [ ] Implement changes'
-            printf '%s\n' '  - GOOD: - [ ] Read `bot/database.py`: confirm `Voucher` table schema (code, duration_minutes, ...)'
-            printf '%s\n' '  - GOOD: - [ ] Add `WiFiService.get_active_count()` to `bot/services/wifi_service.py` -- returns int'
-            printf '%s\n' '  - GOOD: - [ ] Update `bot/main.py`: register `/status` handler calling `get_system_status()`'
-            printf '%s\n' '  - GOOD: - [ ] Commit hash: abc1234 -- `feat: add /status command`'
-            printf '%s\n' ''
+            printf '%s\n' 'STEP 0: Clone repo. Read files. Post DETAILED planning checklist.'
+            printf '%s\n' '  - Each item: exact file + function + evidence'
             printf '%s\n' '  POST to: https://api.github.com/repos/momonakikugava-pixel/AirboxVIP_Coffeenet/issues/ISSUE_NUM/comments'
-            printf '%s\n' '  Authorization: Bearer AIRBOXVIP_TOKEN'
-            printf '%s\n' '  Format:'
-            printf '%s\n' '    ## Working'
-            printf '%s\n' '    > <one-line status of what you are doing right now>'
-            printf '%s\n' ''
-            printf '%s\n' '    ## Todo'
-            printf '%s\n' '    - [ ] Read `<file>`: verify <specific thing>'
-            printf '%s\n' '    - [ ] Implement `<function>` in `<file>`: <what it does>'
-            printf '%s\n' '    - [ ] Run `python3 Tools/run_gates.py`: all 3 gates pass'
-            printf '%s\n' '    - [ ] Commit: `<type>: <short description>`'
-            printf '%s\n' '    - [ ] Post final report with commit hash and evidence'
-            printf '%s\n' ''
-            printf '%s\n' '  Save the comment id. After completing each item, PATCH it to tick [x].'
-            printf '%s\n' '  PATCH: https://api.github.com/repos/momonakikugava-pixel/AirboxVIP_Coffeenet/issues/comments/COMMENT_ID'
-            printf '%s\n' ''
-            printf '%s\n' 'STEP 1: Implement all tasks from checklist.'
-            printf '%s\n' 'STEP 2: Run gates: python3 Tools/run_gates.py (must pass).'
+            printf '%s\n' '  Auth: Bearer ${AIRBOXVIP_PAT}'
+            printf '%s\n' '  PATCH comment_id to tick [x] after each step.'
+            printf '%s\n' 'STEP 1: Implement tasks.'
+            printf '%s\n' 'STEP 2: Run python3 Tools/run_gates.py (must pass).'
             printf '%s\n' 'STEP 3: git add -A && git commit && git push origin main'
-            printf '%s\n' 'STEP 4: Post final report with commit hash and a summary table of what was done.'
+            printf '%s\n' 'STEP 4: Post final report with commit hash.'
           } > /tmp/prompt.txt
-          printf 'Prompt: %s lines\n' "$(wc -l < /tmp/prompt.txt)"
-          # Calculate acc_index: spread issues across 9 accounts for true parallelism
           ACC_IDX=$(( ISSUE_NUM % 9 ))
           echo "acc_index=$ACC_IDX" >> "$GITHUB_OUTPUT"
 
@@ -124,13 +96,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
         run: |
-          ACC_IDX="${{ steps.prompt.outputs.acc_index }}"
-          echo "Dispatching to runner slot acc_index=$ACC_IDX"
           PROMPT=$(cat /tmp/prompt.txt)
           gh workflow run agw-worker.yml \
             --repo Mohammadlali/agw-workers \
             --field "prompt=$PROMPT" \
-            --field "acc_index=$ACC_IDX" \
+            --field "acc_index=${{ steps.prompt.outputs.acc_index }}" \
             --field "callback_id=av-${{ github.event.issue.number }}-${{ github.run_id }}"
           sleep 10
           RUN_ID=$(gh run list --repo Mohammadlali/agw-workers \
@@ -162,7 +132,7 @@ jobs:
           OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
           [ -n "$OUT" ] && head -c 58000 "$OUT" > /tmp/final.txt || printf '%s\n' '(no output)' > /tmp/final.txt
           WORKER_URL="https://github.com/Mohammadlali/agw-workers/actions/runs/$WORKER_RUN"
-          printf '%s\n\n---\n*AGY worker: %s | acc_index: ${{ steps.prompt.outputs.acc_index }}*\n' "$(cat /tmp/final.txt)" "$WORKER_URL" > /tmp/comment.txt
+          printf '%s\n\n---\n*AGY worker: %s | acc: ${{ steps.prompt.outputs.acc_index }}*\n' "$(cat /tmp/final.txt)" "$WORKER_URL" > /tmp/comment.txt
           gh issue comment "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" \
             --body-file /tmp/comment.txt
