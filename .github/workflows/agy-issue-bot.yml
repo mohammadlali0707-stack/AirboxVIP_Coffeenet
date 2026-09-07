@@ -1,0 +1,145 @@
+name: AirboxVIP-Coffeenet AGY Issue Bot
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: Prompt for AGY
+        required: false
+        type: string
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  agy-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && startsWith(github.event.issue.body, '@agy')) ||
+      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '@agy') && github.event.comment.user.type != 'Bot')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ack
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "AGY is on it. Will reply when done."
+
+      - name: Build prompt
+        id: prompt
+        env:
+          AIRBOXVIP_TOKEN: ${{ secrets.AIRBOXVIP_PAT }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          REPO='momonakikugava-pixel/AirboxVIP_Coffeenet'
+          sanitize() { sed "s/\`/'/g; s/\"/'/g; s/\$(/DOLLAR(/g; s/\${/DOLLAR{/g"; }
+          SAFE_TITLE=$(printf '%s' "$ISSUE_TITLE" | tr -d '`\\$')
+          SAFE_BODY=$(printf '%s' "$ISSUE_BODY" | sanitize)
+          SAFE_COMMENT=$(printf '%s' "$COMMENT_BODY" | sanitize)
+          README=$(cat README.md 2>/dev/null | sanitize | head -50 || printf '%s' '(not found)')
+          {
+            printf '%s\n' 'You are AGY, an AI software engineer for AirboxVIP-Coffeenet.'
+            printf '%s\n' 'This is a Telegram bot for managing WiFi at coffee shops.'
+            printf '%s\n' ''
+            printf '%s\n' '=== CREDENTIALS ==='
+            printf 'AIRBOXVIP_TOKEN: %s\n' "$AIRBOXVIP_TOKEN"
+            printf 'REPO: %s\n' "$REPO"
+            printf 'ISSUE_NUM: %s\n' "$ISSUE_NUM"
+            printf '%s\n' ''
+            printf '%s\n' '=== GIT SETUP ==='
+            printf 'git clone https://x-access-token:%s@github.com/%s.git /tmp/repo\n' "$AIRBOXVIP_TOKEN" "$REPO"
+            printf '%s\n' 'cd /tmp/repo'
+            printf '%s\n' "git config user.email 'agy-bot@airboxvip.local'"
+            printf '%s\n' "git config user.name 'AGY Bot'"
+            printf '%s\n' ''
+            printf '%s\n' '=== PROJECT README ==='
+            printf '%s\n' "$README"
+            printf '%s\n' ''
+            printf 'TASK - Issue #%s: %s\n' "$ISSUE_NUM" "$SAFE_TITLE"
+            printf '%s\n' "$SAFE_BODY"
+            if [ -n "$SAFE_COMMENT" ]; then
+              printf '%s\n' ''
+              printf '%s\n' 'LATEST COMMENT:'
+              printf '%s\n' "$SAFE_COMMENT"
+            fi
+            printf '%s\n' ''
+            printf '%s\n' '=== REQUIRED STEPS ==='
+            printf '%s\n' 'STEP 0: Post planning checklist BEFORE any work.'
+            printf '%s\n' '  POST to: https://api.github.com/repos/momonakikugava-pixel/AirboxVIP_Coffeenet/issues/ISSUE_NUM/comments'
+            printf '%s\n' '  Authorization: Bearer AIRBOXVIP_TOKEN'
+            printf '%s\n' '  Markdown body:'
+            printf '%s\n' '    ### Working on it'
+            printf '%s\n' '    - [ ] Understand task'
+            printf '%s\n' '    - [ ] Implement changes'
+            printf '%s\n' '    - [ ] Commit and push'
+            printf '%s\n' '    - [ ] Done report'
+            printf '%s\n' '  After each step, PATCH the comment to tick done items.'
+            printf '%s\n' ''
+            printf '%s\n' 'STEP 1: Clone the repo. Read existing code to understand context.'
+            printf '%s\n' 'STEP 2: Implement the requested changes.'
+            printf '%s\n' 'STEP 3: git add -A && git commit && git push origin main'
+            printf '%s\n' 'STEP 4: Post final report on the issue.'
+          } > /tmp/prompt.txt
+          printf 'Prompt: %s lines\n' "$(wc -l < /tmp/prompt.txt)"
+
+      - name: Dispatch to agw-workers
+        id: dispatch
+        env:
+          GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
+        run: |
+          PROMPT=$(cat /tmp/prompt.txt)
+          gh workflow run agw-worker.yml \
+            --repo Mohammadlali/agw-workers \
+            --field "prompt=$PROMPT" \
+            --field "acc_index=0" \
+            --field "callback_id=av-${{ github.event.issue.number }}-${{ github.run_id }}"
+          sleep 10
+          RUN_ID=$(gh run list --repo Mohammadlali/agw-workers \
+            --workflow agw-worker.yml --limit 1 --json databaseId -q '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for worker
+        env:
+          GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
+        run: |
+          RID="${{ steps.dispatch.outputs.run_id }}"
+          for i in $(seq 1 40); do
+            ST=$(gh run view "$RID" --repo Mohammadlali/agw-workers --json status -q '.status')
+            echo "[$i/40] $ST"
+            [ "$ST" = "completed" ] && break
+            sleep 30
+          done
+
+      - name: Download and post result
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MOHAMMADLALI_PAT: ${{ secrets.MOHAMMADLALI_PAT }}
+          WORKER_RUN: ${{ steps.dispatch.outputs.run_id }}
+        run: |
+          mkdir -p /tmp/agy-out
+          GH_TOKEN="$MOHAMMADLALI_PAT" gh run download "$WORKER_RUN" \
+            --repo Mohammadlali/agw-workers --dir /tmp/agy-out 2>/dev/null || true
+          OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
+          [ -n "$OUT" ] && head -c 58000 "$OUT" > /tmp/final.txt || printf '%s\n' '(no output)' > /tmp/final.txt
+          gh issue comment "${{ github.event.issue.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "$(cat /tmp/final.txt)
+
+---
+*AGY worker: https://github.com/Mohammadlali/agw-workers/actions/runs/$WORKER_RUN*"
