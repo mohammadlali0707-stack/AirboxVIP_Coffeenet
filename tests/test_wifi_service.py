@@ -28,7 +28,7 @@ class TestVoucherModel(unittest.TestCase):
 class TestWiFiService(unittest.TestCase):
     def setUp(self):
         self.mock_router = MockRouterClient()
-        self.service = WiFiService(router_client=self.mock_router)
+        self.service = WiFiService(router_client=self.mock_router, db_path=":memory:")
 
     def test_issue_and_retrieve_voucher(self):
         v = self.service.issue_voucher(duration_minutes=45, comment="Test table")
@@ -74,7 +74,7 @@ class TestWiFiService(unittest.TestCase):
 class TestHandlers(unittest.TestCase):
     def setUp(self):
         self.mock_router = MockRouterClient()
-        self.service = WiFiService(router_client=self.mock_router)
+        self.service = WiFiService(router_client=self.mock_router, db_path=":memory:")
         config.admin_chat_ids = [999]
 
     def test_wifi_request_handler(self):
@@ -102,5 +102,98 @@ class TestHandlers(unittest.TestCase):
         self.assertIn("وضعیت سامانه AirboxVIP Coffeenet", msg)
 
 
+class TestDatabase(unittest.TestCase):
+    def setUp(self):
+        from bot.database import Database
+        self.db = Database(db_path=":memory:")
+
+    def tearDown(self):
+        self.db.close()
+
+    def test_add_and_get_voucher(self):
+        v = Voucher.generate(duration_minutes=30, upload_limit_mb=100, download_limit_mb=200, comment="test")
+        self.db.add_voucher(v)
+
+        retrieved = self.db.get_voucher(v.code)
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved.code, v.code)
+        self.assertEqual(retrieved.duration_minutes, 30)
+        self.assertEqual(retrieved.upload_limit_mb, 100)
+        self.assertEqual(retrieved.download_limit_mb, 200)
+        self.assertTrue(retrieved.is_active)
+        self.assertEqual(retrieved.comment, "test")
+
+    def test_update_voucher(self):
+        v = Voucher.generate(duration_minutes=30)
+        self.db.add_voucher(v)
+
+        v.is_active = False
+        v.used_by = "12345"
+        v.used_at = "2026-09-07T12:00:00"
+        updated = self.db.update_voucher(v)
+        self.assertTrue(updated)
+
+        retrieved = self.db.get_voucher(v.code)
+        self.assertFalse(retrieved.is_active)
+        self.assertEqual(retrieved.used_by, "12345")
+        self.assertEqual(retrieved.used_at, "2026-09-07T12:00:00")
+
+    def test_list_and_count_vouchers(self):
+        self.assertEqual(self.db.count_vouchers(), 0)
+        v1 = Voucher.generate(comment="v1")
+        v2 = Voucher.generate(comment="v2")
+        self.db.add_voucher(v1)
+        self.db.add_voucher(v2)
+
+        self.assertEqual(self.db.count_vouchers(), 2)
+        self.assertEqual(self.db.count_vouchers(active_only=True), 2)
+        self.assertEqual(len(self.db.list_vouchers()), 2)
+
+        v1.is_active = False
+        self.db.update_voucher(v1)
+        self.assertEqual(self.db.count_vouchers(active_only=True), 1)
+        self.assertEqual(len(self.db.list_vouchers(active_only=True)), 1)
+
+
+class TestPersistence(unittest.TestCase):
+    def test_persistence_across_service_instances(self):
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tf:
+            db_path = tf.name
+
+        try:
+            # First service instance creates and issues voucher
+            router1 = MockRouterClient()
+            service1 = WiFiService(router_client=router1, db_path=db_path)
+            v = service1.issue_voucher(duration_minutes=90, comment="Persistence test")
+            code = v.code
+            service1.db.close()
+
+            # Second service instance opens the same DB file and retrieves voucher
+            router2 = MockRouterClient()
+            service2 = WiFiService(router_client=router2, db_path=db_path)
+            retrieved = service2.get_voucher(code)
+            self.assertIsNotNone(retrieved)
+            self.assertEqual(retrieved.code, code)
+            self.assertEqual(retrieved.duration_minutes, 90)
+            self.assertEqual(retrieved.comment, "Persistence test")
+
+            # Redeem voucher in service2
+            self.assertTrue(service2.redeem_voucher(code, user_id="user_persistent"))
+            service2.db.close()
+
+            # Third service instance verifies redemption persisted
+            service3 = WiFiService(router_client=MockRouterClient(), db_path=db_path)
+            v3 = service3.get_voucher(code)
+            self.assertEqual(v3.used_by, "user_persistent")
+            self.assertIsNotNone(v3.used_at)
+            service3.db.close()
+        finally:
+            if os.path.exists(db_path):
+                os.remove(db_path)
+
+
 if __name__ == "__main__":
     unittest.main()
+

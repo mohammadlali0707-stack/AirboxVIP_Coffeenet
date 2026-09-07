@@ -41,5 +41,17 @@ class Voucher:
             comment=comment,
         )
 
+    @property
+    def upload_mb(self) -> int:
+        return self.upload_limit_mb
+
+    @property
+    def download_mb(self) -> int:
+        return self.download_limit_mb
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        d["upload_mb"] = self.upload_limit_mb
+        d["download_mb"] = self.download_limit_mb
+        return d
+

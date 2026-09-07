@@ -2,13 +2,30 @@ from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from bot.models.voucher import Voucher
 from bot.services.router_client import RouterClientInterface, MockRouterClient
+from bot.database import Database
 from bot.config import config
 
 
 class WiFiService:
-    def __init__(self, router_client: Optional[RouterClientInterface] = None):
+    def __init__(
+        self,
+        router_client: Optional[RouterClientInterface] = None,
+        db: Optional[Database] = None,
+        db_path: Optional[str] = None,
+    ):
         self.router = router_client or MockRouterClient()
-        self._vouchers: Dict[str, Voucher] = {}
+        if db is not None:
+            self.db = db
+        elif db_path is not None:
+            self.db = Database(db_path=db_path)
+        else:
+            self.db = Database()
+        self._cache: Dict[str, Voucher] = {}
+
+    @property
+    def _vouchers(self) -> Dict[str, Voucher]:
+        """Backward-compatible access to vouchers dictionary."""
+        return {v.code: v for v in self.list_vouchers()}
 
     def issue_voucher(
         self,
@@ -39,11 +56,28 @@ class WiFiService:
             comment=f"AirboxVIP:{comment or 'Auto'}",
         )
 
-        self._vouchers[voucher.code] = voucher
+        self.db.add_voucher(voucher)
+        self._cache[voucher.code] = voucher
         return voucher
 
     def get_voucher(self, code: str) -> Optional[Voucher]:
-        return self._vouchers.get(code.upper().strip())
+        norm_code = code.upper().strip()
+        voucher = self.db.get_voucher(norm_code)
+        if voucher is None:
+            return None
+        if norm_code in self._cache:
+            cached = self._cache[norm_code]
+            cached.duration_minutes = voucher.duration_minutes
+            cached.upload_limit_mb = voucher.upload_limit_mb
+            cached.download_limit_mb = voucher.download_limit_mb
+            cached.is_active = voucher.is_active
+            cached.used_by = voucher.used_by
+            cached.used_at = voucher.used_at
+            cached.created_at = voucher.created_at
+            cached.comment = voucher.comment
+            return cached
+        self._cache[norm_code] = voucher
+        return voucher
 
     def redeem_voucher(self, code: str, user_id: str) -> bool:
         voucher = self.get_voucher(code)
@@ -51,6 +85,7 @@ class WiFiService:
             return False
         voucher.used_by = str(user_id)
         voucher.used_at = datetime.now(timezone.utc).isoformat()
+        self.db.update_voucher(voucher)
         return True
 
     def revoke_voucher(self, code: str) -> bool:
@@ -58,21 +93,38 @@ class WiFiService:
         if not voucher:
             return False
         voucher.is_active = False
+        self.db.update_voucher(voucher)
         self.router.remove_hotspot_user(voucher.code)
         return True
 
-    def list_vouchers(self, active_only: bool = False) -> List[Voucher]:
-        if active_only:
-            return [v for v in self._vouchers.values() if v.is_active]
-        return list(self._vouchers.values())
+    def list_vouchers(self, active_only: bool = False, limit: Optional[int] = None) -> List[Voucher]:
+        vouchers = self.db.list_vouchers(active_only=active_only, limit=limit)
+        result = []
+        for v in vouchers:
+            if v.code in self._cache:
+                cached = self._cache[v.code]
+                cached.duration_minutes = v.duration_minutes
+                cached.upload_limit_mb = v.upload_limit_mb
+                cached.download_limit_mb = v.download_limit_mb
+                cached.is_active = v.is_active
+                cached.used_by = v.used_by
+                cached.used_at = v.used_at
+                cached.created_at = v.created_at
+                cached.comment = v.comment
+                result.append(cached)
+            else:
+                self._cache[v.code] = v
+                result.append(v)
+        return result
 
     def get_system_status(self) -> dict:
         router_status = "Online" if self.router.ping_router() else "Offline"
-        total_vouchers = len(self._vouchers)
-        active_vouchers = sum(1 for v in self._vouchers.values() if v.is_active)
+        total_vouchers = self.db.count_vouchers()
+        active_vouchers = self.db.count_vouchers(active_only=True)
         return {
             "router_status": router_status,
             "total_vouchers": total_vouchers,
             "active_vouchers": active_vouchers,
             "active_sessions": len(self.router.list_active_sessions()),
         }
+
