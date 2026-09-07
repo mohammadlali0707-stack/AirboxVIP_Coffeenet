@@ -1,0 +1,130 @@
+name: AirboxVIP-Coffeenet AGY Discussion Responder
+
+on:
+  discussion_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: read
+  discussions: write
+
+jobs:
+  discussion-responder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >
+      github.event_name == 'discussion_comment' &&
+      startsWith(github.event.comment.body, '@agy') &&
+      github.event.comment.user.type != 'Bot'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build context prompt
+        id: prompt
+        env:
+          AIRBOXVIP_TOKEN: ${{ secrets.AIRBOXVIP_PAT }}
+          USER_COMMENT: ${{ github.event.comment.body }}
+          DISCUSSION_TITLE: ${{ github.event.discussion.title }}
+          DISCUSSION_BODY: ${{ github.event.discussion.body }}
+          DISCUSSION_NUM: ${{ github.event.discussion.number }}
+          DISCUSSION_NODE: ${{ github.event.discussion.node_id }}
+        run: |
+          REPO='momonakikugava-pixel/AirboxVIP_Coffeenet'
+          sanitize() { sed "s/\`/'/g; s/\"/'/g; s/\$(/DOLLAR(/g; s/\${/DOLLAR{/g"; }
+          SAFE_COMMENT=$(printf '%s' "$USER_COMMENT" | sanitize)
+          SAFE_DT=$(printf '%s' "$DISCUSSION_TITLE" | sanitize)
+          SAFE_DB=$(printf '%s' "$DISCUSSION_BODY" | sanitize)
+          {
+            printf '%s\n' 'You are AGY, an AI assistant for AirboxVIP-Coffeenet project.'
+            printf '%s\n' 'This is a Telegram bot for managing WiFi at coffee shops.'
+            printf '%s\n' 'Read the discussion context below and answer the user question.'
+            printf '%s\n' ''
+            printf '%s\n' 'OUTPUT FORMAT: Output only the answer text. No preamble.'
+            printf '%s\n' 'LANGUAGE: Answer in same language as the user question.'
+            printf '%s\n' ''
+            printf 'DISCUSSION #%s: %s\n' "$DISCUSSION_NUM" "$SAFE_DT"
+            printf '%s\n' '---'
+            printf '%s\n' "$SAFE_DB"
+            printf '%s\n' '---'
+            printf '%s\n' ''
+            printf '%s\n' 'USER COMMENT:'
+            printf '%s\n' "$SAFE_COMMENT"
+            printf '%s\n' ''
+            printf '%s\n' 'INSTRUCTIONS:'
+            printf '%s\n' ''
+            printf '%s\n' 'CASE A - User is asking a question:'
+            printf '%s\n' '  Answer based on the context. Output only the answer.'
+            printf '%s\n' '  The workflow will post it to the Discussion automatically.'
+            printf '%s\n' ''
+            printf '%s\n' 'CASE B - User is requesting a code change or task:'
+            printf '%s\n' '  Create a GitHub issue using this API:'
+            printf '%s\n' '  Method: POST'
+            printf '%s\n' '  URL: https://api.github.com/repos/momonakikugava-pixel/AirboxVIP_Coffeenet/issues'
+            printf '%s\n' '  Header - Authorization: Bearer AIRBOXVIP_TOKEN_VALUE'
+            printf '  AIRBOXVIP_TOKEN_VALUE = %s\n' "$AIRBOXVIP_TOKEN"
+            printf '%s\n' '  Issue title: short descriptive title'
+            printf '%s\n' '  Issue body: first line must be @agy, then detailed task description'
+            printf '%s\n' '  After creating the issue, output only: Issue created at <URL>'
+          } > /tmp/prompt.txt
+          printf 'Prompt: %s lines\n' "$(wc -l < /tmp/prompt.txt)"
+
+      - name: Dispatch to agw-workers
+        id: dispatch
+        env:
+          GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
+        run: |
+          PROMPT=$(cat /tmp/prompt.txt)
+          gh workflow run agw-worker.yml \
+            --repo Mohammadlali/agw-workers \
+            --field "prompt=$PROMPT" \
+            --field "acc_index=0" \
+            --field "callback_id=av-disc-${{ github.run_id }}"
+          sleep 10
+          RUN_ID=$(gh run list --repo Mohammadlali/agw-workers \
+            --workflow agw-worker.yml --limit 1 --json databaseId -q '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for worker
+        env:
+          GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
+        run: |
+          RID="${{ steps.dispatch.outputs.run_id }}"
+          for i in $(seq 1 40); do
+            ST=$(gh run view "$RID" --repo Mohammadlali/agw-workers --json status -q '.status')
+            echo "[$i/40] $ST"
+            [ "$ST" = "completed" ] && break
+            sleep 30
+          done
+
+      - name: Download AGY output
+        env:
+          GH_TOKEN: ${{ secrets.MOHAMMADLALI_PAT }}
+        run: |
+          RID="${{ steps.dispatch.outputs.run_id }}"
+          mkdir -p /tmp/agy-out
+          gh run download "$RID" --repo Mohammadlali/agw-workers --dir /tmp/agy-out 2>/dev/null || true
+          OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
+          if [ -n "$OUT" ]; then
+            head -c 58000 "$OUT" > /tmp/final.txt
+          else
+            printf '%s\n' '(AGY produced no output)' > /tmp/final.txt
+          fi
+
+      - name: Post reply to Discussion
+        env:
+          AIRBOXVIP_TOKEN: ${{ secrets.AIRBOXVIP_PAT }}
+          DISCUSSION_NODE: ${{ github.event.discussion.node_id }}
+        run: |
+          ANSWER=$(cat /tmp/final.txt)
+          WORKER_URL="https://github.com/Mohammadlali/agw-workers/actions/runs/${{ steps.dispatch.outputs.run_id }}"
+          FULL_REPLY=$(printf '%s\n\n---\n*AGY worker: %s*' "$ANSWER" "$WORKER_URL")
+          jq -n \
+            --arg node "$DISCUSSION_NODE" \
+            --arg body "$FULL_REPLY" \
+            '{query: "mutation($did: ID!, $body: String!) { addDiscussionComment(input: {discussionId: $did, body: $body}) { comment { id } } }", variables: {did: $node, body: $body}}' | \
+          curl -sf -X POST https://api.github.com/graphql \
+            -H "Authorization: Bearer $AIRBOXVIP_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @- | jq '.data.addDiscussionComment.comment.id'
