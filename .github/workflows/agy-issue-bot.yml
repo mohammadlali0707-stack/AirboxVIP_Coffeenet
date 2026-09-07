@@ -122,7 +122,7 @@ jobs:
           gh workflow run agw-worker.yml \
             --repo "$DISPATCH_REPO" \
             --field "prompt=$PROMPT" \
-            --field "acc_index=0" \
+            --field "acc_index=$(( ACC_IDX + 1 ))" \
             --field "callback_id=av-${{ github.event.issue.number }}-${{ github.run_id }}"
           sleep 10
           RUN_ID=$(gh run list --repo "$DISPATCH_REPO" \
