@@ -5,7 +5,12 @@ load_dotenv()
 
 
 class Config:
-    bot_token: str = os.getenv("BOT_TOKEN", os.getenv("TELEGRAM_BOT_TOKEN", ""))
+    bot_token: str = (
+        os.getenv("TELEGRAM_TOKEN")
+        or os.getenv("BOT_TOKEN")
+        or os.getenv("TELEGRAM_BOT_TOKEN")
+        or ""
+    )
     admin_user_ids: list = [
         int(x)
         for x in (os.getenv("ADMIN_USER_IDS") or os.getenv("ADMIN_CHAT_IDS", "")).split(",")
@@ -17,7 +22,12 @@ class Config:
     default_upload_mb: int = int(os.getenv("DEFAULT_UPLOAD_MB", "100"))
 
     def __init__(self):
-        self.bot_token = os.getenv("BOT_TOKEN", os.getenv("TELEGRAM_BOT_TOKEN", ""))
+        self.bot_token = (
+            os.getenv("TELEGRAM_TOKEN")
+            or os.getenv("BOT_TOKEN")
+            or os.getenv("TELEGRAM_BOT_TOKEN")
+            or ""
+        )
         self.admin_user_ids = [
             int(x)
             for x in (os.getenv("ADMIN_USER_IDS") or os.getenv("ADMIN_CHAT_IDS", "")).split(",")
