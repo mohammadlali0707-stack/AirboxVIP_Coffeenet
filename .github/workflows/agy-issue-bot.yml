@@ -23,7 +23,7 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' && startsWith(github.event.issue.body, '@agy') && (github.event.issue.author_association == 'OWNER' || github.event.issue.author_association == 'COLLABORATOR')) ||
-      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '@agy') && github.event.comment.author_association == 'OWNER')
+      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '@agy') && (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'COLLABORATOR'))
     steps:
       - name: Checkout
         uses: actions/checkout@v4
