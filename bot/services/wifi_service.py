@@ -121,10 +121,12 @@ class WiFiService:
         router_status = "Online" if self.router.ping_router() else "Offline"
         total_vouchers = self.db.count_vouchers()
         active_vouchers = self.db.count_vouchers(active_only=True)
+        today_vouchers = self.db.count_vouchers_today()
         return {
             "router_status": router_status,
             "total_vouchers": total_vouchers,
             "active_vouchers": active_vouchers,
+            "today_vouchers": today_vouchers,
             "active_sessions": len(self.router.list_active_sessions()),
         }
 

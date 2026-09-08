@@ -143,6 +143,13 @@ class Database:
             cursor = conn.execute("SELECT COUNT(*) FROM vouchers")
         return cursor.fetchone()[0]
 
+    def count_vouchers_today(self) -> int:
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        conn = self.get_connection()
+        cursor = conn.execute("SELECT COUNT(*) FROM vouchers WHERE created_at LIKE ?", (f"{today}%",))
+        return cursor.fetchone()[0]
+
     def delete_voucher(self, code: str) -> bool:
         conn = self.get_connection()
         with conn:

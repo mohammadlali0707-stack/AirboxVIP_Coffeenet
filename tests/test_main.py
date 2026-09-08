@@ -58,8 +58,8 @@ class TestBotCommands(unittest.IsolatedAsyncioTestCase):
         mock_builder.token.assert_called_once_with(config.bot_token)
         mock_builder.build.assert_called_once()
 
-        # Check that 4 CommandHandlers were registered
-        self.assertEqual(mock_app.add_handler.call_count, 4)
+        # Check that 8 CommandHandlers were registered
+        self.assertEqual(mock_app.add_handler.call_count, 8)
         registered_commands = [
             list(call.args[0].commands)[0]
             for call in mock_app.add_handler.call_args_list
@@ -68,6 +68,10 @@ class TestBotCommands(unittest.IsolatedAsyncioTestCase):
         self.assertIn("wifi", registered_commands)
         self.assertIn("status", registered_commands)
         self.assertIn("help", registered_commands)
+        self.assertIn("admin", registered_commands)
+        self.assertIn("vouchers", registered_commands)
+        self.assertIn("revoke", registered_commands)
+        self.assertIn("stats", registered_commands)
         mock_app.run_polling.assert_called_once()
 
 

@@ -63,7 +63,7 @@ jobs:
             printf '%s\n' 'then run:'
             printf '%s\n' "  git config user.email 'agy-bot@airboxvip.local'"
             printf '%s\n' "  git config user.name 'AGY Bot'"
-            printf '%s\n' '  git add -A && git commit -m "<message>"'
+            printf '%s\n' '  git add -A && git commit -m YOUR_COMMIT_MESSAGE'
             printf '%s\n' 'Do NOT run git push and do NOT call any GitHub API yourself -- the pipeline'
             printf '%s\n' 'running you pushes your commit and posts your final output as the issue'
             printf '%s\n' 'comment on its own, after you finish, using a credential you never see.'
@@ -85,7 +85,7 @@ jobs:
             printf '%s\n' '  This is printed output only -- do not post it anywhere yourself.'
             printf '%s\n' 'STEP 1: Implement the task.'
             printf '%s\n' 'STEP 2: python3 Tools/run_gates.py (must pass).'
-            printf '%s\n' 'STEP 3: git add -A && git commit -m "<message>"  (no push -- see above)'
+            printf '%s\n' 'STEP 3: git add -A && git commit -m YOUR_COMMIT_MESSAGE  (no push -- see above)'
             printf '%s\n' 'STEP 4: Print a final report to stdout, including the commit hash you made.'
           } > /tmp/prompt.txt
           ACC_IDX=$(( ISSUE_NUM % 9 ))

@@ -36,8 +36,13 @@ class Config:
     def admin_chat_ids(self, val: list):
         self.admin_user_ids = val
 
-    def is_admin(self, user_id: int) -> bool:
-        return user_id in self.admin_user_ids
+    def is_admin(self, user_id) -> bool:
+        if user_id is None:
+            return False
+        try:
+            return int(user_id) in self.admin_user_ids
+        except (ValueError, TypeError):
+            return False
 
 
 config = Config()
