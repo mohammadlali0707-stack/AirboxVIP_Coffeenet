@@ -45,7 +45,7 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          REPO='momonakikugava-pixel/AirboxVIP_Coffeenet'
+          BRANCH='main'
           sanitize() { sed "s/\`/'/g; s/\"/'/g; s/\$(/DOLLAR(/g; s/\${/DOLLAR{/g"; }
           SAFE_TITLE=$(printf '%s' "$ISSUE_TITLE" | tr -d '`\\$')
           SAFE_BODY=$(printf '%s' "$ISSUE_BODY" | sanitize)
@@ -54,17 +54,19 @@ jobs:
           {
             printf '%s\n' 'You are AGY, an AI software engineer for AirboxVIP-Coffeenet.'
             printf '%s\n' 'This is a Telegram bot for managing WiFi vouchers at coffee shops.'
+            printf 'Active branch: %s\n' "$BRANCH"
             printf '%s\n' ''
-            printf '%s\n' '=== CREDENTIALS ==='
-            printf 'REPO: %s\n' "$REPO"
-            printf 'ISSUE_NUM: %s\n' "$ISSUE_NUM"
-            printf '%s\n' 'REPO_TOKEN: use secret AIRBOXVIP_PAT from your worker environment (never print it)'
-            printf '%s\n' ''
-            printf '%s\n' '=== GIT SETUP ==='
-            printf '%s\n' 'git clone https://x-access-token:${AIRBOXVIP_PAT}@github.com/momonakikugava-pixel/AirboxVIP_Coffeenet.git /tmp/repo'
-            printf '%s\n' 'cd /tmp/repo'
-            printf '%s\n' "git config user.email 'agy-bot@airboxvip.local'"
-            printf '%s\n' "git config user.name 'AGY Bot'"
+            printf '%s\n' '=== WORKING TREE ==='
+            printf '%s\n' 'The current directory is already a clone of this repo on the active branch.'
+            printf '%s\n' 'You have NO git credential and NO GitHub API token in your environment -- do'
+            printf '%s\n' 'not attempt to authenticate to GitHub, and do not ask for a token. Edit files,'
+            printf '%s\n' 'then run:'
+            printf '%s\n' "  git config user.email 'agy-bot@airboxvip.local'"
+            printf '%s\n' "  git config user.name 'AGY Bot'"
+            printf '%s\n' '  git add -A && git commit -m "<message>"'
+            printf '%s\n' 'Do NOT run git push and do NOT call any GitHub API yourself -- the pipeline'
+            printf '%s\n' 'running you pushes your commit and posts your final output as the issue'
+            printf '%s\n' 'comment on its own, after you finish, using a credential you never see.'
             printf '%s\n' ''
             printf '%s\n' '=== PROJECT README ==='
             printf '%s\n' "$README"
@@ -78,15 +80,13 @@ jobs:
             fi
             printf '%s\n' ''
             printf '%s\n' '=== REQUIRED STEPS ==='
-            printf '%s\n' 'STEP 0: Clone repo. Read files. Post DETAILED planning checklist.'
-            printf '%s\n' '  - Each item: exact file + function + evidence'
-            printf '%s\n' '  POST to: https://api.github.com/repos/momonakikugava-pixel/AirboxVIP_Coffeenet/issues/ISSUE_NUM/comments'
-            printf '%s\n' '  Auth: Bearer ${AIRBOXVIP_PAT}'
-            printf '%s\n' '  PATCH comment_id to tick [x] after each step.'
-            printf '%s\n' 'STEP 1: Implement tasks.'
+            printf '%s\n' 'STEP 0: Read the files relevant to this task and print a short DETAILED'
+            printf '%s\n' '  planning checklist to stdout (exact file + function + evidence per item).'
+            printf '%s\n' '  This is printed output only -- do not post it anywhere yourself.'
+            printf '%s\n' 'STEP 1: Implement the task.'
             printf '%s\n' 'STEP 2: python3 Tools/run_gates.py (must pass).'
-            printf '%s\n' 'STEP 3: git add -A && git commit && git push origin main'
-            printf '%s\n' 'STEP 4: Post final report with commit hash.'
+            printf '%s\n' 'STEP 3: git add -A && git commit -m "<message>"  (no push -- see above)'
+            printf '%s\n' 'STEP 4: Print a final report to stdout, including the commit hash you made.'
           } > /tmp/prompt.txt
           ACC_IDX=$(( ISSUE_NUM % 9 ))
           echo "acc_index=$ACC_IDX" >> "$GITHUB_OUTPUT"
@@ -122,6 +122,8 @@ jobs:
           gh workflow run agw-worker.yml \
             --repo "$DISPATCH_REPO" \
             --field "prompt=$PROMPT" \
+            --field "target_repo=momonakikugava-pixel/AirboxVIP_Coffeenet" \
+            --field "target_branch=main" \
             --field "acc_index=$(( ACC_IDX + 1 ))" \
             --field "callback_id=av-${{ github.event.issue.number }}-${{ github.run_id }}"
           sleep 10
