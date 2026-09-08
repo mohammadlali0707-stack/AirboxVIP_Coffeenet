@@ -1,0 +1,5 @@
+MARKER: agy-write-probe-20260908T081547Z-34203541628
+ACCOUNT: momonakikugava-pixel
+REPO: AirboxVIP_Coffeenet
+PURPOSE: owner-authorized write-access probe, no functional change
+SAFE TO DELETE: this whole branch can be deleted, nothing depends on it
