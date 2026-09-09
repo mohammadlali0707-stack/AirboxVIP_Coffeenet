@@ -10,7 +10,25 @@ def is_admin(user_id: int) -> bool:
     if user_id is None:
         return False
     try:
-        return int(user_id) in config.admin_user_ids
+        uid = int(user_id)
+        # Check bot.config
+        admin_ids = getattr(config, "admin_chat_ids", None) or getattr(config, "admin_user_ids", [])
+        if uid in admin_ids:
+            return True
+        # Check telegram_bot.config
+        try:
+            import telegram_bot.config as tb_config
+            tb_admin_ids = (
+                getattr(tb_config.config, "admin_chat_ids", None)
+                or getattr(tb_config.config, "admin_user_ids", None)
+                or getattr(tb_config, "ADMIN_CHAT_IDS", None)
+                or getattr(tb_config, "ADMIN_USER_IDS", [])
+            )
+            if tb_admin_ids and uid in tb_admin_ids:
+                return True
+        except Exception:
+            pass
+        return False
     except (ValueError, TypeError):
         return False
 
@@ -21,7 +39,8 @@ def require_admin(func):
         @functools.wraps(func)
         async def async_wrapper(update, context, *args, **kwargs):
             user_id = update.effective_user.id if update and update.effective_user else None
-            if not is_admin(user_id):
+            chat_id = update.effective_chat.id if update and update.effective_chat else None
+            if not is_admin(user_id) and not is_admin(chat_id):
                 if update and update.message:
                     await update.message.reply_text("⛔ دسترسی ندارید")
                 return "⛔ دسترسی ندارید"
@@ -56,24 +75,29 @@ def handle_admin(user_id: int) -> str:
     )
 
 
-def handle_vouchers(wifi_service: WiFiService, user_id: int) -> str:
-    """Return formatted table of active vouchers or empty message."""
+def handle_vouchers(
+    wifi_service: WiFiService,
+    user_id: int,
+    active_only: bool = False,
+    limit: Optional[int] = None,
+) -> str:
+    """Return formatted table of active or all vouchers or empty message."""
     if not is_admin(user_id):
         return "⛔ دسترسی ندارید"
 
-    active_vouchers = wifi_service.list_vouchers(active_only=True, limit=10)
-    if not active_vouchers:
+    vouchers = wifi_service.list_vouchers(active_only=active_only, limit=limit)
+    if not vouchers:
         return "هیچ کد فعالی وجود ندارد"
 
     header = "code | duration | used_by | created_at"
     separator = "---|---|---|---"
     rows = [header, separator]
-    for v in active_vouchers:
+    for v in vouchers:
         used = str(v.used_by) if v.used_by else "-"
         created = str(v.created_at)[:19] if v.created_at else "-"
         rows.append(f"`{v.code}` | {v.duration_minutes}m | {used} | {created}")
 
-    return "📋 **لیست ووچرهای فعال:**\n\n" + "\n".join(rows)
+    return "📋 **لیست ووچرها:**\n\n" + "\n".join(rows)
 
 
 def handle_revoke(

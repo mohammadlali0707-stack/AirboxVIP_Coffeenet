@@ -12,6 +12,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 import telegram_bot.config as bot_config
+import telegram_bot.database as database
 from bot.services.wifi_service import WiFiService
 from bot.handlers.wifi import handle_wifi_request
 from bot.handlers.admin import (
@@ -21,6 +22,7 @@ from bot.handlers.admin import (
     handle_revoke,
     handle_stats,
     require_admin,
+    is_admin,
 )
 
 logging.basicConfig(
@@ -72,9 +74,12 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @require_admin
 async def vouchers_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """List 10 active vouchers (admin only)"""
+    """List all vouchers (admin only)"""
     user_id = update.effective_user.id if update.effective_user else None
-    reply = handle_vouchers(wifi_service, user_id)
+    active_only = False
+    if context and context.args and "active" in [a.lower() for a in context.args]:
+        active_only = True
+    reply = handle_vouchers(wifi_service, user_id, active_only=active_only)
     await update.message.reply_text(reply)
 
 
@@ -82,7 +87,7 @@ async def vouchers_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def revoke_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Revoke a voucher by code (admin only)"""
     user_id = update.effective_user.id if update.effective_user else None
-    code = context.args[0] if context.args else ""
+    code = context.args[0] if (context and context.args) else ""
     reply = handle_revoke(wifi_service, user_id, code)
     await update.message.reply_text(reply)
 
@@ -120,6 +125,7 @@ def create_application() -> Application:
 
 
 def main():
+    database.init_db()
     app = create_application()
     logger.info("AirboxVIP Coffeenet bot starting polling...")
     app.run_polling()

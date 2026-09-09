@@ -20,6 +20,17 @@ ADMIN_USER_IDS = [
     for x in (os.getenv("ADMIN_USER_IDS") or os.getenv("ADMIN_CHAT_IDS", "")).split(",")
     if x.strip() and x.strip().isdigit()
 ]
+ADMIN_CHAT_IDS = ADMIN_USER_IDS
+
+
+def is_admin(user_id) -> bool:
+    if user_id is None:
+        return False
+    try:
+        uid = int(user_id)
+        return uid in ADMIN_CHAT_IDS or uid in ADMIN_USER_IDS or (config and config.is_admin(uid))
+    except (ValueError, TypeError):
+        return False
 
 # Default Branding & Links
 CHANNEL_BRANDING = "@airboxvipcoffeenet"
@@ -59,6 +70,14 @@ class Config:
 
     @admin_chat_ids.setter
     def admin_chat_ids(self, val: list):
+        self.admin_user_ids = val
+
+    @property
+    def ADMIN_CHAT_IDS(self) -> list:
+        return self.admin_user_ids
+
+    @ADMIN_CHAT_IDS.setter
+    def ADMIN_CHAT_IDS(self, val: list):
         self.admin_user_ids = val
 
     def is_admin(self, user_id) -> bool:
