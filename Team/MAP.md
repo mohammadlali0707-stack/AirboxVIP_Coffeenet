@@ -14,3 +14,4 @@
 | #4 | Admin commands | In Progress |
 | #5 | MikroTik API | In Progress |
 | #6 | Deployment | In Progress |
+| #11 | Daily morning status report | Done |
