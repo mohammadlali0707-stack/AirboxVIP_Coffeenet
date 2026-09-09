@@ -12,6 +12,7 @@ Last updated: 2026-09-09
 ## Automation & Reporting
 - Daily Morning Status Report workflow active (.github/workflows/tbs-morning.yml)
 - Master verification gates (15/15) + workflow safety checks
+- Issue #12 completed: AGY discussion responder timeout audited & remediated (.github/workflows/agy-discussion.yml)
 
 ## Next Steps
 1. Issue #2: Real Telegram + SQLite
