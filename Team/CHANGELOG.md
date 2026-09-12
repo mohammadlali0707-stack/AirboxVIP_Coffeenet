@@ -1,5 +1,10 @@
 # AirboxVIP_Coffeenet Changelog
 
+## 2026-09-12
+- Issue #16: Align project identity and official Persian title to 'کافینت ایرباکس وی آی پی' (replacing legacy/misnamed 'ربات ووچر قهوه‌نت')
+- Document cross-account root cause in docs/AUDIT_ISSUE_16_PROJECT_STATUS_ROLE_ALIGNMENT.md detailing status-dashboard and Control-Room topic routing behavior
+- Update README.md, Team/START_HERE.md, Team/MAP.md, and Team/WHERE_WE_ARE.md
+
 ## 2026-09-09
 - Issue #12: Audit agy discussion responder workflow timeout (.github/workflows/agy-discussion.yml) against Claud-Cloud-Project standards (docs/AUDIT_ISSUE_12_AGY_DISCUSSION_TIMEOUT.md)
 - Increase agy-discussion job timeout to 35m and extend polling loop to 60 iterations (1800s) to align with AGW worker 1700s/1680s timeouts

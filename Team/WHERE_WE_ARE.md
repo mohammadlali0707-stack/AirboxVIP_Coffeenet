@@ -13,6 +13,7 @@ Last updated: 2026-09-09
 - Daily Morning Status Report workflow active (.github/workflows/tbs-morning.yml)
 - Master verification gates (15/15) + workflow safety checks
 - Issue #12 completed: AGY discussion responder timeout audited & remediated (.github/workflows/agy-discussion.yml)
+- Issue #16 completed: Project identity and role aligned to "کافینت ایرباکس وی آی پی" (replacing legacy/misnamed "ربات ووچر قهوه‌نت" in status feeds); audit report compiled in `docs/AUDIT_ISSUE_16_PROJECT_STATUS_ROLE_ALIGNMENT.md`.
 
 ## Next Steps
 1. Issue #2: Real Telegram + SQLite

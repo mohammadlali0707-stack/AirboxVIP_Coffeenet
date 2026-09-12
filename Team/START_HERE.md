@@ -1,9 +1,11 @@
 # AirboxVIP_Coffeenet - Start Here
 
 ## What Is This?
-WiFi voucher management via Telegram bot + web dashboard.
+کافینت ایرباکس وی آی پی — سامانه خدمات دیجیتال و مدیریت ووچر وای‌فای (WiFi voucher management via Telegram bot + web dashboard).
 
 ## Key Info
+- Name (EN): AirboxVIP Coffeenet
+- Name (FA): کافینت ایرباکس وی آی پی (سابقاً در فید وضعیت به اشتباه 'ربات ووچر قهوه‌نت' درج شده بود)
 - Frontend: coffeenet.airboxvip.top (Vercel)
 - Repo: momonakikugava-pixel/AirboxVIP_Coffeenet
 - Stack: Vite/React + Python + SQLite
