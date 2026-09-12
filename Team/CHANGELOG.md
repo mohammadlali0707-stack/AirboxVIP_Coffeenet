@@ -1,6 +1,7 @@
 # AirboxVIP_Coffeenet Changelog
 
 ## 2026-09-12
+- Issue #17: Fix (no output) in agy-issue-bot.yml result-collection step by capturing CALLBACK_ID and reading Reports/agy/${CALLBACK_ID}.txt via GitHub Contents API instead of looking for unproduced agy_output.txt artifact
 - Issue #16: Align project identity and official Persian title to 'کافینت ایرباکس وی آی پی' (replacing legacy/misnamed 'ربات ووچر قهوه‌نت')
 - Document cross-account root cause in docs/AUDIT_ISSUE_16_PROJECT_STATUS_ROLE_ALIGNMENT.md detailing status-dashboard and Control-Room topic routing behavior
 - Update README.md, Team/START_HERE.md, Team/MAP.md, and Team/WHERE_WE_ARE.md
