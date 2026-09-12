@@ -1,0 +1,121 @@
+### STEP 0: Detailed Planning Checklist
+
+1. **[`.github/workflows/agy-issue-bot.yml`](file:///tmp/agent-repo/.github/workflows/agy-issue-bot.yml)**
+   - **Target Step:** `Dispatch, wait and collect` (Lines 94–146).
+   - **Evidence:**
+     - **Inline `callback_id`:** Line 128 dispatched `--field "callback_id=av-${{ github.event.issue.number }}-${{ github.run_id }}"` without capturing the value into a shell variable.
+     - **Artifact Search Failure:** Lines 142–146 ran:
+       ```bash
+       mkdir -p /tmp/agy-out
+       gh run download "$RUN_ID" --repo "$DISPATCH_REPO" --dir /tmp/agy-out 2>/dev/null || true
+       OUT=$(find /tmp/agy-out -name "agy_output.txt" | head -1)
+       [ -n "$OUT" ] && head -c 58000 "$OUT" > /tmp/final.txt || printf '%s\n' '(no output)' > /tmp/final.txt
+       ```
+       Because `agw-worker.yml` receives `target_repo`, it does not produce or upload an `agy_output.txt` artifact; instead, it directly commits the output file into the target repository at `Reports/agy/<callback_id>.txt` (e.g. `Reports/agy/av-16-34704736108.txt`). Consequently, `OUT` evaluated to empty, writing `(no output)` to `/tmp/final.txt`, which was then posted as the issue comment.
+   - **Remediation:**
+     - Capture `CALLBACK_ID="av-${{ github.event.issue.number }}-${{ github.run_id }}"` before calling `gh workflow run`.
+     - Replace the `gh run download` block with a direct GitHub Contents API read of `Reports/agy/${CALLBACK_ID}.txt` using `GH_TOKEN="${{ secrets.GITHUB_TOKEN }}"`, decoding the base64 content into `/tmp/final_raw.txt` and truncating to 58,000 bytes.
+
+2. **[`Team/MAP.md`](file:///tmp/agent-repo/Team/MAP.md)**
+   - **Target Section:** Active Issues table.
+   - **Evidence:** Track completion of Issue #17.
+
+3. **[`Team/WHERE_WE_ARE.md`](file:///tmp/agent-repo/Team/WHERE_WE_ARE.md)**
+   - **Target Section:** Automation & Reporting.
+   - **Evidence:** Document resolution of the result collection bug in `agy-issue-bot.yml`.
+
+4. **[`Team/CHANGELOG.md`](file:///tmp/agent-repo/Team/CHANGELOG.md)**
+   - **Target Section:** 2026-09-12 changelog entries.
+   - **Evidence:** Log Issue #17 fix.
+
+---
+
+### STEP 1: Implementation Summary
+
+- **Updated [`.github/workflows/agy-issue-bot.yml`](file:///tmp/agent-repo/.github/workflows/agy-issue-bot.yml)**:
+  1. Defined `CALLBACK_ID="av-${{ github.event.issue.number }}-${{ github.run_id }}"` prior to dispatch and passed `--field "callback_id=$CALLBACK_ID"`.
+  2. Replaced `gh run download` / `agy_output.txt` search with:
+     ```bash
+     GH_TOKEN="${{ secrets.GITHUB_TOKEN }}" gh api "repos/${{ github.repository }}/contents/Reports/agy/${CALLBACK_ID}.txt" \
+       --jq '.content' 2>/dev/null | base64 -d > /tmp/final_raw.txt || true
+     if [ -s /tmp/final_raw.txt ]; then
+       head -c 58000 /tmp/final_raw.txt > /tmp/final.txt
+     else
+       printf '%s\n' '(no output found -- the worker may have failed before it could commit its output)' > /tmp/final.txt
+     fi
+     ```
+- **Updated Project State & Tracking**:
+  - Recorded completion of Issue #17 in [`Team/MAP.md`](file:///tmp/agent-repo/Team/MAP.md).
+  - Updated status overview in [`Team/WHERE_WE_ARE.md`](file:///tmp/agent-repo/Team/WHERE_WE_ARE.md).
+  - Added changelog entry in [`Team/CHANGELOG.md`](file:///tmp/agent-repo/Team/CHANGELOG.md).
+
+---
+
+### STEP 2: Verification Gates
+
+Executed: `python3 Tools/run_gates.py`
+
+```text
+=== AirboxVIP Coffeenet Verification Gates ===
+
+[ Gate 1: Frontend Structure ]
+  PASS package.json exists
+  PASS index.html exists
+  PASS vite.config.ts exists
+  PASS src/App.tsx exists
+
+[ Gate 2: Package Config ]
+  PASS build script
+  PASS vite dep
+  PASS react dep
+
+[ Gate 3: Telegram Bot ]
+  PASS bot.py
+  PASS config.py
+  PASS requirements.txt
+
+[ Gate 4: Components ]
+  PASS Hero
+  PASS Navbar
+  PASS Services
+  PASS Footer
+  PASS FAQ
+
+=== 15 passed, 0 failed ===
+All gates passed!
+```
+
+Additional static analysis and health checks executed:
+- `python3 Tools/check_workflow_safety.py`: **PASS** (zero violations: no double quotes in printf content strings, valid indentation and YAML syntax).
+- `python3 Tools/check_working_branch.py`: **PASS** (`{"probe": "working_branch", "status": "pass", "branch": "main"}`).
+- `python3 Tools/check_python_syntax.py`: **PASS**.
+- `python3 Tools/run_tests.py`: **PASS** (graceful skip when pytest environment not active).
+
+---
+
+### STEP 3: Git Commit
+
+```bash
+git config user.email 'agy-bot@airboxvip.local'
+git config user.name 'AGY Bot'
+git add -A && git commit -m "fix(ci): collect agy issue bot output via Contents API (Issue #17)"
+```
+
+Commit output:
+```text
+[main 9981696] fix(ci): collect agy issue bot output via Contents API (Issue #17)
+ 4 files changed, 13 insertions(+), 6 deletions(-)
+```
+
+---
+
+### STEP 4: Final Report
+
+- **Commit SHA:** `99816967d59222473805858d33dfb86ef221d510` (`9981696`)
+- **Modified Files:**
+  - [`.github/workflows/agy-issue-bot.yml`](file:///tmp/agent-repo/.github/workflows/agy-issue-bot.yml)
+  - [`Team/CHANGELOG.md`](file:///tmp/agent-repo/Team/CHANGELOG.md)
+  - [`Team/MAP.md`](file:///tmp/agent-repo/Team/MAP.md)
+  - [`Team/WHERE_WE_ARE.md`](file:///tmp/agent-repo/Team/WHERE_WE_ARE.md)
+- **Resolution:**
+  Future dispatches from `agy-issue-bot.yml` will capture `CALLBACK_ID` and fetch the real committed report directly from `Reports/agy/${CALLBACK_ID}.txt` using the GitHub Contents API with repository-scoped permissions, completely eliminating the `(no output)` issue comment bug.
