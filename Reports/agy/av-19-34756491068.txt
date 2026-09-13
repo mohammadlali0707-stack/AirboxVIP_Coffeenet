@@ -1,0 +1,2070 @@
+I am locating the project repository and `run_gates.py` script across the environment.
+I will wait for the search command to finish locating `run_gates.py`.
+I have started running `npm install` in the background to install frontend dependencies and build tools, and will wait for it to complete.
+### STEP 0: Detailed Planning Checklist
+
+1. **[`src/AuthContext.jsx`](file:///tmp/agent-repo/src/AuthContext.jsx)**
+   - **Target / Functions:** `AuthProvider`, `useAuth`, `login`, `signup`, `logout`, `openAuthModal`, `closeAuthModal`, `setAuthModalTab`.
+   - **Evidence:** The codebase previously contained no authentication state or user session persistence. Pivoting to an online digital agency necessitates a unified authentication provider handling both individual clients (`client`) and business agency partners (`agency`), session persistence (`localStorage.airbox_auth_user`), mock database initialization (`localStorage.airbox_users_db`) with pre-seeded demo accounts (`client@airboxvip.top` and `agency@airboxvip.top`), and modal open/close controls.
+
+2. **[`src/AuthModal.jsx`](file:///tmp/agent-repo/src/AuthModal.jsx)**
+   - **Target / Component:** `AuthModal`.
+   - **Evidence:** Previously, no modal or form existed for user registration or authentication. A responsive glassmorphic modal is required featuring tabbed switching between "Sign In" and "Sign Up", account role switching (Individual Client vs Digital Agency Partner), form validation (name, phone/telegram, email, minimum 6-character password, password confirmation, terms acceptance), quick one-click demo login buttons, and password recovery routing via Telegram concierge (`@airboxvip_admin`).
+
+3. **[`src/Navbar.jsx`](file:///tmp/agent-repo/src/Navbar.jsx)**
+   - **Target / Functions:** Navigation bar desktop actions and mobile drawer menu.
+   - **Evidence:** In `src/Navbar.jsx` (lines 38–40 and 62–64), the CTA button statically pointed to `#order`. The navbar must now integrate `useAuth` to display interactive "Sign In" (`t.auth.navSignIn`) and "Sign Up" (`t.auth.navSignUp`) triggers when unauthenticated, and an active user profile chip (`👤 name`, role badge, and `Sign Out` button) when authenticated across both desktop and mobile drawer views.
+
+4. **[`src/OrderForm.jsx`](file:///tmp/agent-repo/src/OrderForm.jsx)**
+   - **Target / Functions:** `OrderForm` state initialization and `handleSubmit`.
+   - **Evidence:** In `src/OrderForm.jsx` (lines 8–10 and 88–93), users previously had to input their credentials manually every time. Integrating `useAuth` allows auto-filling authenticated user info (name, phone/telegram), displaying an authenticated agency banner, and attaching client ID and role to submitted orders.
+
+5. **[`src/translations.js`](file:///tmp/agent-repo/src/translations.js)**
+   - **Target / Dictionaries:** `translations.en.auth` and `translations.fa.auth`.
+   - **Evidence:** The dictionary previously lacked strings for authentication titles, roles, modal tabs, form placeholders, error validation messages, and success feedback in Persian and English.
+
+6. **[`src/App.tsx`](file:///tmp/agent-repo/src/App.tsx)**
+   - **Target / Component:** `App` root layout.
+   - **Evidence:** Root component must wrap children with `<AuthProvider>` alongside `<LanguageProvider>` and mount `<AuthModal />` to provide authentication state and modal rendering throughout the application.
+
+7. **[`src/index.css`](file:///tmp/agent-repo/src/index.css)**
+   - **Target / Selectors:** `.auth-modal-overlay`, `.auth-modal`, `.auth-tabs`, `.auth-tab`, `.auth-role-selector`, `.auth-role-btn`, `.auth-input-wrapper`, `.auth-user-chip`, `.auth-logout-btn`, and RTL alignment overrides.
+   - **Evidence:** CSS required glassmorphic styles matching the AirboxVIP slate-and-gold design language, responsive mobile drawer adjustments, and RTL layout adaptations for Persian.
+
+8. **[`Tools/run_gates.py`](file:///tmp/agent-repo/Tools/run_gates.py)**
+   - **Target / Function:** Verification gates 1 through 4.
+   - **Evidence:** Ensures all 15 verification gates pass cleanly without breaking any existing component contracts or paths.
+
+9. **[`Team/MAP.md`](file:///tmp/agent-repo/Team/MAP.md), [`Team/WHERE_WE_ARE.md`](file:///tmp/agent-repo/Team/WHERE_WE_ARE.md), [`Team/CHANGELOG.md`](file:///tmp/agent-repo/Team/CHANGELOG.md)**
+   - **Target / Sections:** Project status, active issues table, and changelog.
+   - **Evidence:** Track completion of Issue #19 (Sign In / Sign Up flow for Online Agency pivot).
+
+---
+
+### STEP 1: Implementation Summary
+
+- **Created [`src/AuthContext.jsx`](file:///tmp/agent-repo/src/AuthContext.jsx)**: Implemented `AuthProvider` and `useAuth` hook supporting user login, registration, session persistence in `localStorage.airbox_auth_user`, pre-seeded demo accounts in `localStorage.airbox_users_db`, and centralized modal control (`openAuthModal`, `closeAuthModal`, `authModalTab`).
+- **Created [`src/AuthModal.jsx`](file:///tmp/agent-repo/src/AuthModal.jsx)**: Implemented a responsive glassmorphic modal with tabbed Sign In / Sign Up views, role selector (Individual Client vs Agency Partner), password visibility toggles, form validations, feedback banners, and quick one-touch demo logins.
+- **Updated [`src/Navbar.jsx`](file:///tmp/agent-repo/src/Navbar.jsx)**: Connected navigation to `useAuth`. Unauthenticated visitors see "Sign In" and "Sign Up" actions; authenticated users see a user avatar badge with account role and a "Sign Out" button (both desktop and mobile drawer).
+- **Updated [`src/OrderForm.jsx`](file:///tmp/agent-repo/src/OrderForm.jsx)**: Integrated `useAuth` to auto-populate customer name and phone/telegram ID, displayed an authenticated agency banner, and attached customer ID and account role to order records.
+- **Updated [`src/translations.js`](file:///tmp/agent-repo/src/translations.js)**: Added comprehensive Persian and English dictionaries for all authentication elements, tabs, placeholders, error alerts, and account roles.
+- **Updated [`src/App.tsx`](file:///tmp/agent-repo/src/App.tsx)**: Wrapped the application tree in `<AuthProvider>` and mounted `<AuthModal />`.
+- **Updated [`src/index.css`](file:///tmp/agent-repo/src/index.css)**: Added glassmorphic styling, animations, modal overlays, tabs, input wrappers, badges, and complete RTL layout overrides.
+- **Updated Project State**: Recorded Issue #19 in [`Team/MAP.md`](file:///tmp/agent-repo/Team/MAP.md), [`Team/WHERE_WE_ARE.md`](file:///tmp/agent-repo/Team/WHERE_WE_ARE.md), and [`Team/CHANGELOG.md`](file:///tmp/agent-repo/Team/CHANGELOG.md).
+
+---
+
+### STEP 2: Verification Gates
+
+Executed: `python3 Tools/run_gates.py`
+
+```text
+=== AirboxVIP Coffeenet Verification Gates ===
+
+[ Gate 1: Frontend Structure ]
+  PASS package.json exists
+  PASS index.html exists
+  PASS vite.config.ts exists
+  PASS src/App.tsx exists
+
+[ Gate 2: Package Config ]
+  PASS build script
+  PASS vite dep
+  PASS react dep
+
+[ Gate 3: Telegram Bot ]
+  PASS bot.py
+  PASS config.py
+  PASS requirements.txt
+
+[ Gate 4: Components ]
+  PASS Hero
+  PASS Navbar
+  PASS Services
+  PASS Footer
+  PASS FAQ
+
+=== 15 passed, 0 failed ===
+All gates passed!
+```
+
+Additional static analysis & build verification:
+- `npm run build`: **PASS** (32 modules transformed, bundle built cleanly in 154ms).
+- `npm run lint`: **PASS** (0 errors).
+- `python3 Tools/check_workflow_safety.py`: **PASS** (0 violations).
+- `python3 Tools/check_working_branch.py`: **PASS** (`main` branch verified).
+- `python3 Tools/check_python_syntax.py`: **PASS**.
+
+---
+
+### STEP 3: Git Commit
+
+```bash
+git config user.email 'agy-bot@airboxvip.local'
+git config user.name 'AGY Bot'
+git add -A && git commit -m "feat(auth): implement Sign In / Sign Up flow for Online Agency pivot (Issue #19)"
+```
+
+Commit created: `63dd81a69fe8267d3727961a3c5908f25d686452` (`63dd81a`)
+
+---
+
+### STEP 4: Final Report & Complete Code Output
+
+Commit Hash: `63dd81a69fe8267d3727961a3c5908f25d686452`
+
+As per the **CRITICAL INSTRUCTION** for proposed pivots, below is the **COMPLETE** code of all modified and created files so the PM can review and manually apply them.
+
+#### 1. `src/AuthContext.jsx`
+```jsx
+import React, { createContext, useState, useContext, useEffect } from 'react';
+
+const AuthContext = createContext(null);
+
+const DEFAULT_USERS = [
+  {
+    id: 'USR-DEMO-01',
+    name: 'علی محمدی',
+    phone: '09121112233',
+    email: 'client@airboxvip.top',
+    password: 'password123',
+    role: 'client',
+    agencyName: '',
+    createdAt: '2026-08-01T10:00:00.000Z'
+  },
+  {
+    id: 'USR-DEMO-02',
+    name: 'آژانس دیجیتال پارس',
+    phone: '09129998877',
+    email: 'agency@airboxvip.top',
+    password: 'agency123',
+    role: 'agency',
+    agencyName: 'کانون تبلیغات و خدمات دیجیتال پارس',
+    createdAt: '2026-08-05T12:00:00.000Z'
+  }
+];
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('airbox_auth_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState('signin'); // 'signin' | 'signup'
+
+  useEffect(() => {
+    try {
+      const existing = localStorage.getItem('airbox_users_db');
+      if (!existing) {
+        localStorage.setItem('airbox_users_db', JSON.stringify(DEFAULT_USERS));
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  const getUsersFromDb = () => {
+    try {
+      const data = localStorage.getItem('airbox_users_db');
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch {
+      // fallback
+    }
+    return DEFAULT_USERS;
+  };
+
+  const saveUsersToDb = (users) => {
+    try {
+      localStorage.setItem('airbox_users_db', JSON.stringify(users));
+    } catch {
+      // Ignore
+    }
+  };
+
+  const openAuthModal = (tab = 'signin') => {
+    setAuthModalTab(tab);
+    setAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setAuthModalOpen(false);
+  };
+
+  const login = ({ identifier, password, rememberMe = true }) => {
+    const trimmedId = (identifier || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    const users = getUsersFromDb();
+    const foundUser = users.find(u => 
+      (u.email?.toLowerCase() === trimmedId || u.phone?.replace(/\s+/g, '') === trimmedId) &&
+      u.password === cleanPass
+    );
+
+    if (!foundUser) {
+      return { success: false, error: 'invalid_credentials' };
+    }
+
+    const sessionUser = {
+      id: foundUser.id,
+      name: foundUser.name,
+      email: foundUser.email,
+      phone: foundUser.phone,
+      role: foundUser.role || 'client',
+      agencyName: foundUser.agencyName || ''
+    };
+
+    setUser(sessionUser);
+
+    if (rememberMe) {
+      try {
+        localStorage.setItem('airbox_auth_user', JSON.stringify(sessionUser));
+      } catch {
+        // Ignore
+      }
+    }
+
+    closeAuthModal();
+    return { success: true, user: sessionUser };
+  };
+
+  const signup = ({ name, phone, email, password, role = 'client', agencyName = '', rememberMe = true }) => {
+    const trimmedName = (name || '').trim();
+    const trimmedPhone = (phone || '').trim();
+    const trimmedEmail = (email || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+    const trimmedAgency = (agencyName || '').trim();
+
+    const users = getUsersFromDb();
+    const exists = users.some(u => 
+      (trimmedEmail && u.email?.toLowerCase() === trimmedEmail) ||
+      (trimmedPhone && u.phone?.replace(/\s+/g, '') === trimmedPhone.replace(/\s+/g, ''))
+    );
+
+    if (exists) {
+      return { success: false, error: 'user_exists' };
+    }
+
+    const newUser = {
+      id: 'USR-' + Date.now(),
+      name: trimmedName,
+      phone: trimmedPhone,
+      email: trimmedEmail,
+      password: cleanPass,
+      role: role || 'client',
+      agencyName: role === 'agency' ? trimmedAgency : '',
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedUsers = [...users, newUser];
+    saveUsersToDb(updatedUsers);
+
+    const sessionUser = {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      phone: newUser.phone,
+      role: newUser.role,
+      agencyName: newUser.agencyName
+    };
+
+    setUser(sessionUser);
+
+    if (rememberMe) {
+      try {
+        localStorage.setItem('airbox_auth_user', JSON.stringify(sessionUser));
+      } catch {
+        // Ignore
+      }
+    }
+
+    closeAuthModal();
+    return { success: true, user: sessionUser };
+  };
+
+  const logout = () => {
+    setUser(null);
+    try {
+      localStorage.removeItem('airbox_auth_user');
+    } catch {
+      // Ignore
+    }
+  };
+
+  const value = {
+    user,
+    isAuthenticated: Boolean(user),
+    authModalOpen,
+    authModalTab,
+    openAuthModal,
+    closeAuthModal,
+    setAuthModalTab,
+    login,
+    signup,
+    logout
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+```
+
+---
+
+#### 2. `src/AuthModal.jsx`
+```jsx
+import React, { useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { useLanguage } from './LanguageContext';
+import { 
+  FiX, 
+  FiUser, 
+  FiMail, 
+  FiPhone, 
+  FiLock, 
+  FiEye, 
+  FiEyeOff, 
+  FiBriefcase, 
+  FiCheckCircle, 
+  FiAlertCircle,
+  FiArrowRight,
+  FiArrowLeft
+} from 'react-icons/fi';
+
+export default function AuthModal() {
+  const { 
+    authModalOpen, 
+    closeAuthModal, 
+    authModalTab, 
+    setAuthModalTab, 
+    login, 
+    signup 
+  } = useAuth();
+  
+  const { t, lang } = useLanguage();
+  const isRtl = lang === 'fa';
+
+  // Sign In State
+  const [signInIdentifier, setSignInIdentifier] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [showForgotHelp, setShowForgotHelp] = useState(false);
+
+  // Sign Up State
+  const [signUpRole, setSignUpRole] = useState('client'); // 'client' | 'agency'
+  const [signUpName, setSignUpName] = useState('');
+  const [signUpPhone, setSignUpPhone] = useState('');
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpAgencyName, setSignUpAgencyName] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Status & Feedback State
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Close on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && authModalOpen) {
+        closeAuthModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [authModalOpen, closeAuthModal]);
+
+  const handleTabSwitch = (tab) => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    setShowForgotHelp(false);
+    setAuthModalTab(tab);
+  };
+
+  if (!authModalOpen) return null;
+
+  const handleSignInSubmit = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!signInIdentifier.trim() || !signInPassword.trim()) {
+      setErrorMsg(t.auth?.errors?.missingFields || 'Please fill in all fields.');
+      return;
+    }
+
+    setLoading(true);
+    const result = login({
+      identifier: signInIdentifier,
+      password: signInPassword,
+      rememberMe
+    });
+
+    setLoading(false);
+    if (!result.success) {
+      setErrorMsg(t.auth?.errors?.invalidCredentials || 'Invalid username or password.');
+    } else {
+      setSuccessMsg(t.auth?.success?.welcomeBack || 'Logged in successfully!');
+    }
+  };
+
+  const handleSignUpSubmit = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!signUpName.trim() || !signUpPhone.trim() || !signUpEmail.trim() || !signUpPassword.trim()) {
+      setErrorMsg(t.auth?.errors?.missingFields || 'Please fill in all fields.');
+      return;
+    }
+
+    if (signUpRole === 'agency' && !signUpAgencyName.trim()) {
+      setErrorMsg(t.auth?.errors?.missingFields || 'Please enter your agency name.');
+      return;
+    }
+
+    if (signUpPassword.length < 6) {
+      setErrorMsg(t.auth?.errors?.shortPassword || 'Password must be at least 6 characters.');
+      return;
+    }
+
+    if (signUpPassword !== signUpConfirmPassword) {
+      setErrorMsg(t.auth?.errors?.passwordMismatch || 'Passwords do not match.');
+      return;
+    }
+
+    if (!agreeTerms) {
+      setErrorMsg(t.auth?.errors?.agreeRequired || 'You must agree to the terms.');
+      return;
+    }
+
+    setLoading(true);
+    const result = signup({
+      name: signUpName,
+      phone: signUpPhone,
+      email: signUpEmail,
+      password: signUpPassword,
+      role: signUpRole,
+      agencyName: signUpAgencyName,
+      rememberMe: true
+    });
+
+    setLoading(false);
+    if (!result.success) {
+      if (result.error === 'user_exists') {
+        setErrorMsg(t.auth?.errors?.userExists || 'An account with this email or phone already exists.');
+      } else {
+        setErrorMsg(t.auth?.errors?.generalError || 'Registration failed.');
+      }
+    } else {
+      setSuccessMsg(t.auth?.success?.accountCreated || 'Account created successfully!');
+    }
+  };
+
+  const handleQuickDemo = (role) => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (role === 'client') {
+      setSignInIdentifier('client@airboxvip.top');
+      setSignInPassword('password123');
+      login({ identifier: 'client@airboxvip.top', password: 'password123', rememberMe: true });
+    } else {
+      setSignInIdentifier('agency@airboxvip.top');
+      setSignInPassword('agency123');
+      login({ identifier: 'agency@airboxvip.top', password: 'agency123', rememberMe: true });
+    }
+  };
+
+  return (
+    <div className="auth-modal-overlay" onClick={closeAuthModal}>
+      <div 
+        className="auth-modal glass" 
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Header */}
+        <div className="auth-modal-header">
+          <div className="auth-modal-title-group">
+            <span className="auth-badge">💠 {t.auth?.portalBadge || 'AirboxVIP Online Agency'}</span>
+            <h3>{authModalTab === 'signin' ? t.auth?.signInTab : t.auth?.signUpTab}</h3>
+          </div>
+          <button 
+            className="auth-close-btn" 
+            onClick={closeAuthModal}
+            aria-label="Close modal"
+          >
+            <FiX size={20} />
+          </button>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="auth-tabs">
+          <button 
+            type="button"
+            className={`auth-tab ${authModalTab === 'signin' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('signin')}
+          >
+            {t.auth?.signInTab}
+          </button>
+          <button 
+            type="button"
+            className={`auth-tab ${authModalTab === 'signup' ? 'active' : ''}`}
+            onClick={() => handleTabSwitch('signup')}
+          >
+            {t.auth?.signUpTab}
+          </button>
+        </div>
+
+        {/* Error / Success Feedback */}
+        {errorMsg && (
+          <div className="auth-alert-box error">
+            <FiAlertCircle size={18} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+        {successMsg && (
+          <div className="auth-alert-box success">
+            <FiCheckCircle size={18} />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* Tab 1: Sign In Form */}
+        {authModalTab === 'signin' && (
+          <form onSubmit={handleSignInSubmit} className="auth-form">
+            <div className="input-group">
+              <label>{t.auth?.identifier}</label>
+              <div className="auth-input-wrapper">
+                <FiUser className="auth-input-icon" />
+                <input 
+                  type="text"
+                  required
+                  placeholder={t.auth?.identifierPlaceholder}
+                  value={signInIdentifier}
+                  onChange={(e) => setSignInIdentifier(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>{t.auth?.password}</label>
+              <div className="auth-input-wrapper">
+                <FiLock className="auth-input-icon" />
+                <input 
+                  type={showSignInPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={signInPassword}
+                  onChange={(e) => setSignInPassword(e.target.value)}
+                />
+                <button 
+                  type="button" 
+                  className="auth-eye-btn"
+                  onClick={() => setShowSignInPassword(!showSignInPassword)}
+                  aria-label="Toggle password visibility"
+                >
+                  {showSignInPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="auth-row-between">
+              <label className="auth-checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe} 
+                  onChange={(e) => setRememberMe(e.target.checked)} 
+                />
+                <span>{t.auth?.rememberMe}</span>
+              </label>
+
+              <button 
+                type="button" 
+                className="auth-text-link"
+                onClick={() => setShowForgotHelp(!showForgotHelp)}
+              >
+                {t.auth?.forgotPassword}
+              </button>
+            </div>
+
+            {showForgotHelp && (
+              <div className="auth-helper-card">
+                <p>{t.auth?.forgotPasswordHint}</p>
+                <a 
+                  href="https://t.me/airboxvip_admin" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="auth-tg-link"
+                >
+                  📱 @airboxvip_admin
+                </a>
+              </div>
+            )}
+
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? '...' : t.auth?.signInBtn}
+            </button>
+
+            {/* Quick Demo Section */}
+            <div className="auth-demo-section">
+              <span className="auth-demo-title">⚡ {t.auth?.quickDemo}</span>
+              <div className="auth-demo-buttons">
+                <button 
+                  type="button" 
+                  className="auth-demo-btn"
+                  onClick={() => handleQuickDemo('client')}
+                >
+                  👤 {t.auth?.demoClient}
+                </button>
+                <button 
+                  type="button" 
+                  className="auth-demo-btn agency"
+                  onClick={() => handleQuickDemo('agency')}
+                >
+                  🏢 {t.auth?.demoAgency}
+                </button>
+              </div>
+            </div>
+
+            {/* Switch to Sign Up */}
+            <div className="auth-switch-prompt">
+              <span>{t.auth?.noAccount}</span>
+              <button 
+                type="button" 
+                className="auth-text-link-accent"
+                onClick={() => handleTabSwitch('signup')}
+              >
+                {t.auth?.signUpTab} {isRtl ? <FiArrowLeft /> : <FiArrowRight />}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Tab 2: Sign Up Form */}
+        {authModalTab === 'signup' && (
+          <form onSubmit={handleSignUpSubmit} className="auth-form">
+            {/* Account Role Selector */}
+            <div className="auth-role-group">
+              <label>{t.auth?.accountType}</label>
+              <div className="auth-role-selector">
+                <button 
+                  type="button"
+                  className={`auth-role-btn ${signUpRole === 'client' ? 'active' : ''}`}
+                  onClick={() => setSignUpRole('client')}
+                >
+                  <FiUser size={16} />
+                  <span>{t.auth?.clientType}</span>
+                </button>
+                <button 
+                  type="button"
+                  className={`auth-role-btn ${signUpRole === 'agency' ? 'active' : ''}`}
+                  onClick={() => setSignUpRole('agency')}
+                >
+                  <FiBriefcase size={16} />
+                  <span>{t.auth?.agencyType}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Agency Name (Conditional) */}
+            {signUpRole === 'agency' && (
+              <div className="input-group">
+                <label>{t.auth?.agencyName} *</label>
+                <div className="auth-input-wrapper">
+                  <FiBriefcase className="auth-input-icon" />
+                  <input 
+                    type="text"
+                    required
+                    placeholder={t.auth?.agencyNamePlaceholder}
+                    value={signUpAgencyName}
+                    onChange={(e) => setSignUpAgencyName(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="input-group">
+              <label>{t.auth?.fullName} *</label>
+              <div className="auth-input-wrapper">
+                <FiUser className="auth-input-icon" />
+                <input 
+                  type="text"
+                  required
+                  placeholder={t.auth?.fullNamePlaceholder}
+                  value={signUpName}
+                  onChange={(e) => setSignUpName(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>{t.auth?.phone} *</label>
+              <div className="auth-input-wrapper">
+                <FiPhone className="auth-input-icon" />
+                <input 
+                  type="text"
+                  required
+                  placeholder={t.auth?.phonePlaceholder}
+                  value={signUpPhone}
+                  onChange={(e) => setSignUpPhone(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>{t.auth?.email} *</label>
+              <div className="auth-input-wrapper">
+                <FiMail className="auth-input-icon" />
+                <input 
+                  type="email"
+                  required
+                  placeholder={t.auth?.emailPlaceholder}
+                  value={signUpEmail}
+                  onChange={(e) => setSignUpEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>{t.auth?.password} *</label>
+              <div className="auth-input-wrapper">
+                <FiLock className="auth-input-icon" />
+                <input 
+                  type={showSignUpPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={signUpPassword}
+                  onChange={(e) => setSignUpPassword(e.target.value)}
+                />
+                <button 
+                  type="button" 
+                  className="auth-eye-btn"
+                  onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                  aria-label="Toggle password visibility"
+                >
+                  {showSignUpPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>{t.auth?.confirmPassword} *</label>
+              <div className="auth-input-wrapper">
+                <FiLock className="auth-input-icon" />
+                <input 
+                  type={showSignUpPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={signUpConfirmPassword}
+                  onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label className="auth-checkbox-label terms">
+                <input 
+                  type="checkbox" 
+                  required
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                />
+                <span>{t.auth?.agreeTerms}</span>
+              </label>
+            </div>
+
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? '...' : t.auth?.signUpBtn}
+            </button>
+
+            {/* Switch to Sign In */}
+            <div className="auth-switch-prompt">
+              <span>{t.auth?.hasAccount}</span>
+              <button 
+                type="button" 
+                className="auth-text-link-accent"
+                onClick={() => handleTabSwitch('signin')}
+              >
+                {t.auth?.signInTab} {isRtl ? <FiArrowLeft /> : <FiArrowRight />}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+#### 3. `src/Navbar.jsx`
+```jsx
+import { useState, useEffect } from 'react';
+import { useLanguage } from './LanguageContext';
+import { useAuth } from './AuthContext';
+import { FiGlobe, FiMenu, FiX, FiUser, FiLogOut, FiLogIn, FiBriefcase } from 'react-icons/fi';
+import useScrollAnimation from './useScrollAnimation';
+
+export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { lang, toggleLanguage, t } = useLanguage();
+  const { user, isAuthenticated, openAuthModal, logout } = useAuth();
+  const navContainerRef = useScrollAnimation();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  return (
+    <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
+      <div ref={navContainerRef} className="nav-container fade-in">
+        <div className="brand">
+          <span className="logo-icon">💠</span>
+          <h1>AirboxVIP</h1>
+        </div>
+
+        {/* Desktop Links */}
+        <div className="nav-links desktop-only">
+          <a href="#services">{t.nav.services}</a>
+          <a href="#order">{t.nav.order}</a>
+          <a href="#faq">{t.nav.faq}</a>
+          
+          <button onClick={toggleLanguage} className="lang-toggle" aria-label="Toggle language">
+            <FiGlobe /> {lang === 'en' ? 'FA' : 'EN'}
+          </button>
+
+          {!isAuthenticated ? (
+            <div className="auth-nav-actions">
+              <button 
+                type="button" 
+                onClick={() => openAuthModal('signin')} 
+                className="nav-auth-btn"
+              >
+                <FiLogIn /> {t.auth?.navSignIn || 'Sign In'}
+              </button>
+              <button 
+                type="button" 
+                onClick={() => openAuthModal('signup')} 
+                className="cta-btn"
+              >
+                {t.auth?.navSignUp || 'Sign Up'}
+              </button>
+            </div>
+          ) : (
+            <div className="auth-nav-user-group">
+              <div className="auth-user-chip">
+                <span className="auth-user-avatar">
+                  {user.role === 'agency' ? <FiBriefcase /> : <FiUser />}
+                </span>
+                <span className="auth-user-name">{user.name}</span>
+                <span className="auth-role-badge">
+                  {user.role === 'agency' ? (t.auth?.roleAgency || 'Agency') : (t.auth?.roleClient || 'Client')}
+                </span>
+              </div>
+              <button 
+                type="button" 
+                onClick={logout} 
+                className="auth-logout-btn" 
+                title={t.auth?.logout || 'Logout'}
+                aria-label="Log out"
+              >
+                <FiLogOut /> <span>{t.auth?.logout || 'Logout'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Actions & Hamburger Toggle */}
+        <div className="mobile-actions">
+          <button onClick={toggleLanguage} className="lang-toggle mobile-lang-btn" aria-label="Toggle language">
+            <FiGlobe /> {lang === 'en' ? 'FA' : 'EN'}
+          </button>
+          <button
+            className="hamburger-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? <FiX size={26} /> : <FiMenu size={26} />}
+          </button>
+        </div>
+
+        {/* Mobile Drawer Overlay */}
+        <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
+          <a href="#services" onClick={closeMobileMenu}>{t.nav.services}</a>
+          <a href="#order" onClick={closeMobileMenu}>{t.nav.order}</a>
+          <a href="#faq" onClick={closeMobileMenu}>{t.nav.faq}</a>
+
+          {!isAuthenticated ? (
+            <div className="mobile-auth-section">
+              <button 
+                type="button" 
+                onClick={() => { closeMobileMenu(); openAuthModal('signin'); }} 
+                className="nav-auth-btn mobile-auth-btn"
+              >
+                <FiLogIn /> {t.auth?.navSignIn || 'Sign In'}
+              </button>
+              <button 
+                type="button" 
+                onClick={() => { closeMobileMenu(); openAuthModal('signup'); }} 
+                className="cta-btn mobile-cta"
+              >
+                {t.auth?.navSignUp || 'Sign Up'}
+              </button>
+            </div>
+          ) : (
+            <div className="mobile-user-box">
+              <div className="auth-user-chip">
+                <span className="auth-user-avatar">
+                  {user.role === 'agency' ? <FiBriefcase /> : <FiUser />}
+                </span>
+                <span className="auth-user-name">{user.name}</span>
+                <span className="auth-role-badge">
+                  {user.role === 'agency' ? (t.auth?.roleAgency || 'Agency') : (t.auth?.roleClient || 'Client')}
+                </span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { logout(); closeMobileMenu(); }} 
+                className="auth-logout-btn mobile-logout-btn"
+              >
+                <FiLogOut /> {t.auth?.logout || 'Logout'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+```
+
+---
+
+#### 4. `src/OrderForm.jsx`
+```jsx
+import { useState } from 'react';
+import { useLanguage } from './LanguageContext';
+import { useAuth } from './AuthContext';
+import useScrollAnimation from './useScrollAnimation';
+
+export default function OrderForm() {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
+  const formRef = useScrollAnimation();
+  const [formData, setFormData] = useState(() => ({
+    name: user?.name || '',
+    phone: user?.phone || user?.email || '',
+    service: '',
+    details: '',
+    fileName: ''
+  }));
+
+  const serviceLabels = {
+    university: t.order.servicesList?.university || 'ثبت‌نام دانشگاهی و آزمون‌ها',
+    tax: t.order.servicesList?.tax || 'اظهارنامه و امور مالیاتی',
+    translation: t.order.servicesList?.translation || 'ترجمه آنلاین و رسمی',
+    visa: t.order.servicesList?.visa || 'درخواست ویزا و وقت سفارت',
+    insurance: t.order.servicesList?.insurance || 'امور بیمه و تامین اجتماعی',
+    business: t.order.servicesList?.business || 'ثبت شرکت و برند تجاری',
+    legal: t.order.servicesList?.legal || 'امور ثبتی و استعلامات قانونی',
+    other: t.order.servicesList?.other || 'سایر موارد (توضیح در بخش توضیحات)'
+  };
+
+  const getTelegramUrl = () => {
+    const serviceName = serviceLabels[formData.service] || formData.service || 'سایر';
+    const clientTypeStr = user?.role === 'agency' ? ` (آژانس: ${user.agencyName || user.name})` : '';
+    const message = `سلام، درخواست جدید خدمات VIP:\n\n👤 نام: ${formData.name}${clientTypeStr}\n📱 تماس/آیدی: ${formData.phone}\n📋 نوع خدمت: ${serviceName}${formData.details ? `\n📝 توضیحات: ${formData.details}` : ''}`;
+    return `https://t.me/airboxvip_admin?text=${encodeURIComponent(message)}`;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const newOrder = {
+      id: 'ORD-' + Date.now(),
+      ...formData,
+      userId: user?.id || null,
+      userRole: user?.role || 'guest',
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save locally
+    try {
+      const existingOrders = JSON.parse(localStorage.getItem('airbox_orders') || '[]');
+      localStorage.setItem('airbox_orders', JSON.stringify([...existingOrders, newOrder]));
+    } catch {
+      // Ignore
+    }
+
+    const tgUrl = getTelegramUrl();
+    window.open(tgUrl, '_blank');
+    setSubmitted(true);
+    setLoading(false);
+  };
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'file' && files && files[0]) {
+      setFormData(prev => ({ ...prev, fileName: files[0].name }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleReset = () => {
+    setFormData({
+      name: user?.name || '',
+      phone: user?.phone || user?.email || '',
+      service: '',
+      details: '',
+      fileName: ''
+    });
+    setSubmitted(false);
+  };
+
+  return (
+    <section id="order" className="order-section">
+      <div ref={formRef} className="form-container glass fade-in slide-up">
+        <h2>{t.order.title}</h2>
+
+        {/* Authenticated user status banner */}
+        {isAuthenticated && !submitted && (
+          <div className="auth-order-banner">
+            <span className="auth-order-banner-icon">💠</span>
+            <div className="auth-order-banner-text">
+              <span>{t.auth?.orderBanner || 'Ordering as:'} </span>
+              <strong>{user.name}</strong> ({user.phone || user.email})
+              {user.role === 'agency' && (
+                <span className="auth-agency-tag"> 🏢 {user.agencyName || (t.auth?.roleAgency || 'Agency')}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {submitted ? (
+          <div className="success-message">
+            <span className="success-icon">✨</span>
+            <h3>{t.order.successTitle}</h3>
+            <p style={{ marginBottom: '1.5rem' }}>{t.order.successMessage}</p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a 
+                href={getTelegramUrl()} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="submit-btn" 
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: 'auto', padding: '0.8rem 1.5rem' }}
+              >
+                📱 ارسال نهایی در تلگرام
+              </a>
+              <button onClick={handleReset} className="btn secondary">{t.order.title}</button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label>{t.order.name}</label>
+              <input type="text" name="name" required placeholder="John Doe" value={formData.name} onChange={handleChange} />
+            </div>
+            <div className="input-group">
+              <label>{t.order.phone}</label>
+              <input type="text" name="phone" required placeholder="0912... / @telegram" value={formData.phone} onChange={handleChange} />
+            </div>
+            <div className="input-group">
+              <label>{t.order.service}</label>
+              <select name="service" required value={formData.service} onChange={handleChange}>
+                <option value="">{t.order.servicesList.select}</option>
+                <option value="university">{t.order.servicesList.university}</option>
+                <option value="tax">{t.order.servicesList.tax}</option>
+                <option value="translation">{t.order.servicesList.translation}</option>
+                <option value="visa">{t.order.servicesList.visa}</option>
+                <option value="insurance">{t.order.servicesList.insurance}</option>
+                <option value="business">{t.order.servicesList.business}</option>
+                <option value="legal">{t.order.servicesList.legal}</option>
+                <option value="other">{t.order.servicesList.other}</option>
+              </select>
+            </div>
+            <div className="input-group">
+              <label>{t.order.details}</label>
+              <textarea name="details" rows="3" placeholder="..." value={formData.details} onChange={handleChange}></textarea>
+            </div>
+            <div className="input-group">
+              <label>{t.order.secureUpload}</label>
+              <input type="file" name="file" onChange={handleChange} />
+            </div>
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? '...' : t.order.submit}
+            </button>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+}
+```
+
+---
+
+#### 5. `src/translations.js`
+```javascript
+export const translations = {
+  en: {
+    nav: {
+      services: "Digital Services",
+      order: "VIP Order",
+      faq: "FAQ",
+      accessVIP: "Access VIP"
+    },
+    auth: {
+      portalBadge: "AirboxVIP Digital Agency",
+      navSignIn: "Sign In",
+      navSignUp: "Sign Up",
+      signInTab: "Sign In",
+      signUpTab: "Create Account",
+      identifier: "Email or Phone / Telegram",
+      identifierPlaceholder: "e.g. client@airboxvip.top or 0912...",
+      password: "Password",
+      confirmPassword: "Confirm Password",
+      rememberMe: "Remember me",
+      forgotPassword: "Forgot password?",
+      forgotPasswordHint: "Need account recovery? Reach out directly to our 24/7 Telegram concierge:",
+      signInBtn: "Sign In to Portal",
+      signUpBtn: "Create Agency Account",
+      quickDemo: "Quick Demo Logins",
+      demoClient: "Demo Client",
+      demoAgency: "Demo Agency Partner",
+      noAccount: "Don't have an agency account yet?",
+      hasAccount: "Already have an account?",
+      accountType: "Account Type",
+      clientType: "Individual Client",
+      agencyType: "Digital Agency / Corporate",
+      agencyName: "Agency / Enterprise Name",
+      agencyNamePlaceholder: "e.g. Apex Media Agency",
+      fullName: "Full Name",
+      fullNamePlaceholder: "e.g. Alex Moradi",
+      phone: "Phone / Telegram ID",
+      phonePlaceholder: "09123456789 or @handle",
+      email: "Email Address",
+      emailPlaceholder: "name@company.com",
+      agreeTerms: "I agree to the Digital Agency Terms of Service & Privacy Guidelines",
+      logout: "Sign Out",
+      welcome: "Welcome,",
+      roleClient: "Client",
+      roleAgency: "Agency Partner",
+      orderBanner: "Ordering as authenticated user:",
+      errors: {
+        missingFields: "Please complete all required fields.",
+        invalidCredentials: "The identifier or password you entered is incorrect.",
+        shortPassword: "Password must be at least 6 characters.",
+        passwordMismatch: "Passwords do not match. Please re-enter.",
+        userExists: "An account with this email or phone is already registered.",
+        agreeRequired: "You must accept the terms of service to create an account.",
+        generalError: "Authentication operation failed. Please try again."
+      },
+      success: {
+        welcomeBack: "Welcome back! Successfully authenticated.",
+        accountCreated: "Account registered successfully! Welcome to AirboxVIP."
+      }
+    },
+    hero: {
+      title: "AirboxVIP ",
+      highlight: "Coffeenet",
+      subtitle: "Experience the future of digital services. Fully online, zero paper, pure speed.",
+      explore: "Explore Digital Services",
+      viewPlans: "View Plans"
+    },
+    services: {
+      title: "Digital Services",
+      note: "⚠️ Note: We operate 100% digitally. No physical printing services are provided.",
+      items: [
+        { title: "University & Exam Registration", desc: "100% Digital university, exam & recruitment registrations.", icon: "🎓" },
+        { title: "Tax Returns & Financial Services", desc: "Online processing of tax returns, VAT, and financial portals.", icon: "📊" },
+        { title: "Online Translation", desc: "Certified and official translation services delivered securely.", icon: "🌐" },
+        { title: "Visa & Embassy Appointments", desc: "End-to-end digital visa applications, DS-160, and appointments.", icon: "✈️" },
+        { title: "Insurance & Social Security", desc: "Online insurance records, payslips, and pension inquiries.", icon: "🛡️" },
+        { title: "Business & Trademark Registration", desc: "Official company registration, brand, and corporate changes.", icon: "🏢" },
+        { title: "Legal & Identity Services", desc: "SANA authentication, criminal background check, and traffic fines.", icon: "⚖️" },
+        { title: "Other / Custom Request", desc: "Any custom digital coffeenet request — describe in details.", icon: "✨" }
+      ]
+    },
+    order: {
+      title: "Request Digital Service",
+      name: "Full Name",
+      phone: "Phone Number / Telegram ID",
+      service: "Service Type",
+      secureUpload: "Secure Upload (Optional)",
+      servicesList: {
+        select: "Select a service...",
+        university: "University & Exam Registration",
+        tax: "Tax Returns & Financial Services",
+        translation: "Online & Certified Translation",
+        visa: "Visa & Embassy Appointments",
+        insurance: "Insurance & Social Security",
+        business: "Business & Trademark Registration",
+        legal: "Legal & Identity Services (SANA/Police)",
+        other: "Other (Describe in details below)"
+      },
+      details: "Additional Details / Custom Request",
+      submit: "Submit VIP Request",
+      successTitle: "Request Ready!",
+      successMessage: "Your request details are ready. Click the button below to send directly to Telegram support."
+    },
+    faq: {
+      title: "Frequently Asked Questions",
+      items: [
+        {
+          q: "Do you offer printing or copying services?",
+          a: "No. AirboxVIP is a 100% paperless digital service provider. We handle all processing, registration, and documentation entirely online."
+        },
+        {
+          q: "How fast is the VIP service?",
+          a: "Most digital services are initiated within 15 minutes of request submission during business hours."
+        },
+        {
+          q: "Is my data secure?",
+          a: "Yes. We use end-to-end encryption for all document transfers and never store your personal data longer than required for the service."
+        }
+      ]
+    },
+    footer: {
+      title: "AirboxVIP Coffeenet",
+      desc: "The premium, 100% digital service hub.",
+      telegram: "📱 Telegram Channel",
+      email: "📧 support@airboxvip.top",
+      rights: "© 2026 AirboxVIP. All digital rights reserved."
+    }
+  },
+  fa: {
+    nav: {
+      services: "خدمات دیجیتال",
+      order: "سفارش ویژه",
+      faq: "سوالات متداول",
+      accessVIP: "ورود ویژه"
+    },
+    auth: {
+      portalBadge: "آژانس دیجیتال ایرباکس وی آی پی",
+      navSignIn: "ورود به حساب",
+      navSignUp: "ثبت‌نام",
+      signInTab: "ورود به حساب",
+      signUpTab: "ثبت‌نام جدید",
+      identifier: "ایمیل یا شماره تماس / آیدی تلگرام",
+      identifierPlaceholder: "مثلاً client@airboxvip.top یا 0912...",
+      password: "رمز عبور",
+      confirmPassword: "تکرار رمز عبور",
+      rememberMe: "مرا به خاطر بسپار",
+      forgotPassword: "فراموشی رمز عبور؟",
+      forgotPasswordHint: "جهت بازیابی رمز عبور، با پشتیبانی ۲۴ ساعته ایرباکس در تلگرام در ارتباط باشید:",
+      signInBtn: "ورود به سامانه آژانس",
+      signUpBtn: "ثبت‌نام و ورود به پنل",
+      quickDemo: "ورود سریع با اکانت‌های آزمایشی",
+      demoClient: "مشتری عادی آزمایشی",
+      demoAgency: "همکار آژانس دیجیتال",
+      noAccount: "هنوز در سامانه حساب کاربری ندارید؟",
+      hasAccount: "قبلاً ثبت‌نام کرده‌اید؟",
+      accountType: "نوع حساب کاربری",
+      clientType: "مشتری حقیقی / فردی",
+      agencyType: "آژانس دیجیتال / حقوقی",
+      agencyName: "نام آژانس یا شرکت",
+      agencyNamePlaceholder: "مثلاً آژانس دیجیتال پیشرو",
+      fullName: "نام و نام خانوادگی",
+      fullNamePlaceholder: "مثلاً علی محمدی",
+      phone: "شماره تماس / آیدی تلگرام",
+      phonePlaceholder: "۰۹۱۲۳۴۵۶۷۸۹ یا @username",
+      email: "آدرس ایمیل",
+      emailPlaceholder: "name@company.com",
+      agreeTerms: "قوانین و مقررات آژانس دیجیتال و حریم خصوصی را می‌پذیرم",
+      logout: "خروج",
+      welcome: "خوش آمدید،",
+      roleClient: "مشتری حقیقی",
+      roleAgency: "همکار آژانس",
+      orderBanner: "در حال ثبت سفارش به عنوان:",
+      errors: {
+        missingFields: "لطفاً تمامی فیلدهای ستاره‌دار الزامی را تکمیل نمایید.",
+        invalidCredentials: "اطلاعات ورود یا رمز عبور نامعتبر است. مجدداً تلاش کنید.",
+        shortPassword: "رمز عبور باید حداقل شامل ۶ کاراکتر باشد.",
+        passwordMismatch: "رمز عبور و تکرار آن یکسان نیستند.",
+        userExists: "حساب کاربری با این ایمیل یا شماره تماس قبلاً ثبت شده است.",
+        agreeRequired: "پذیرش قوانین و مقررات جهت ثبت‌نام الزامی است.",
+        generalError: "خطا در برقراری ارتباط با سامانه. لطفاً دوباره تلاش کنید."
+      },
+      success: {
+        welcomeBack: "ورود با موفقیت انجام شد. خوش آمدید!",
+        accountCreated: "حساب کاربری شما ایجاد گردید و با موفقیت وارد شدید."
+      }
+    },
+    hero: {
+      title: "ایرباکس VIP ",
+      highlight: "کافی‌نت",
+      subtitle: "آینده خدمات دیجیتال را تجربه کنید. تماماً آنلاین، بدون کاغذ، با نهایت سرعت.",
+      explore: "کاوش خدمات دیجیتال",
+      viewPlans: "مشاهده طرح‌ها"
+    },
+    services: {
+      title: "خدمات دیجیتال",
+      note: "⚠️ توجه: فعالیت ما ۱۰۰٪ دیجیتال است. هیچ‌گونه خدمات چاپ فیزیکی ارائه نمی‌شود.",
+      items: [
+        { title: "ثبت‌نام دانشگاهی و آزمون‌ها", desc: "خدمات ۱۰۰٪ دیجیتال ثبت‌نام کنکور، دانشگاه، آیلتس و استخدامی.", icon: "🎓" },
+        { title: "اظهارنامه و امور مالیاتی", desc: "پردازش آنلاین اظهارنامه‌های مالیاتی، ارزش افزوده و سامانه مؤدیان.", icon: "📊" },
+        { title: "ترجمه آنلاین و رسمی", desc: "خدمات ترجمه رسمی مدارک و اسناد تخصصی با تحویل سریع.", icon: "🌐" },
+        { title: "درخواست ویزا و وقت سفارت", desc: "مشاوره، فرم DS-160 و ثبت‌نام آنلاین صفر تا صد ویزا و سفارت.", icon: "✈️" },
+        { title: "امور بیمه و تامین اجتماعی", desc: "استعلام سوابق بیمه، نوبت‌دهی آنلاین و دریافت فیش حقوقی.", icon: "🛡️" },
+        { title: "ثبت شرکت و برند تجاری", desc: "خدمات آنلاین ثبت برند، تغییرات شرکت‌ها و کارت بازرگانی.", icon: "🏢" },
+        { title: "امور ثبتی و استعلامات قانونی", desc: "احراز هویت ثنا، گواهی عدم سوءپیشینه و خلافی خودرو.", icon: "⚖️" },
+        { title: "سایر خدمات دیجیتال", desc: "هرگونه درخواست دیجیتال و کافی‌نتی سفارشی شما.", icon: "✨" }
+      ]
+    },
+    order: {
+      title: "درخواست خدمات دیجیتال",
+      name: "نام و نام خانوادگی",
+      phone: "شماره تماس / آیدی تلگرام",
+      service: "نوع خدمات",
+      secureUpload: "آپلود امن (اختیاری)",
+      servicesList: {
+        select: "یک خدمت را انتخاب کنید...",
+        university: "ثبت‌نام دانشگاهی و آزمون‌ها",
+        tax: "اظهارنامه و امور مالیاتی",
+        translation: "ترجمه آنلاین و رسمی",
+        visa: "درخواست ویزا و وقت سفارت",
+        insurance: "امور بیمه و تامین اجتماعی",
+        business: "ثبت شرکت و برند تجاری",
+        legal: "امور ثبتی و استعلامات قانونی (ثنا / عدم سوءپیشینه)",
+        other: "سایر موارد (توضیح در بخش توضیحات)"
+      },
+      details: "توضیحات تکمیلی / شرح درخواست سفارشی",
+      submit: "ثبت درخواست VIP",
+      successTitle: "درخواست شما آماده شد!",
+      successMessage: "اطلاعات درخواست شما آماده گردید. جهت ارسال نهایی به پشتیبانی، روی دکمه زیر کلیک کنید تا وارد تلگرام شوید."
+    },
+    faq: {
+      title: "سوالات متداول",
+      items: [
+        {
+          q: "آیا خدمات چاپ یا کپی ارائه می‌دهید؟",
+          a: "خیر. ایرباکس یک ارائه‌دهنده خدمات ۱۰۰٪ دیجیتال و بدون کاغذ است. تمام پردازش‌ها و ثبت‌نام‌ها کاملاً آنلاین انجام می‌شود."
+        },
+        {
+          q: "سرعت انجام خدمات VIP چقدر است؟",
+          a: "اکثر خدمات دیجیتال در ساعات کاری طی ۱۵ دقیقه پس از ثبت درخواست آغاز می‌شوند."
+        },
+        {
+          q: "آیا اطلاعات من امن است؟",
+          a: "بله. ما از رمزنگاری پیشرفته (End-to-End) برای انتقال اسناد استفاده می‌کنیم و اطلاعات شخصی شما را بیش از زمان لازم برای انجام کار ذخیره نمی‌کنیم."
+        }
+      ]
+    },
+    footer: {
+      title: "کافی‌نت ایرباکس VIP",
+      desc: "مرکز خدمات پریمیوم و ۱۰۰٪ دیجیتال.",
+      telegram: "📱 کانال تلگرام",
+      email: "📧 پشتیبانی",
+      rights: "© 2026 ایرباکس VIP. تمام حقوق دیجیتال محفوظ است."
+    }
+  }
+};
+```
+
+---
+
+#### 6. `src/App.tsx`
+```tsx
+import Navbar from './Navbar';
+import Hero from './Hero';
+import Services from './Services';
+import OrderForm from './OrderForm';
+import FAQ from './FAQ';
+import Footer from './Footer';
+import AuthModal from './AuthModal';
+import { LanguageProvider } from './LanguageContext';
+import { AuthProvider } from './AuthContext';
+
+function App() {
+  return (
+    <LanguageProvider>
+      <AuthProvider>
+        <Navbar />
+        <main>
+          <Hero />
+          <Services />
+          <OrderForm />
+          <FAQ />
+        </main>
+        <Footer />
+        <AuthModal />
+      </AuthProvider>
+    </LanguageProvider>
+  );
+}
+
+export default App;
+```
+
+---
+
+#### 7. `src/index.css` (Auth additions)
+```css
+/* =========================================================
+   Online Agency Sign In / Sign Up Flow & Auth Components
+   ========================================================= */
+
+.auth-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-auth-btn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-color);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s ease;
+}
+
+.nav-auth-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: var(--accent-color);
+}
+
+.auth-nav-user-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.88rem;
+}
+
+.auth-user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--accent-color);
+  color: #000;
+  border-radius: 50%;
+  font-size: 0.78rem;
+}
+
+.auth-user-name {
+  font-weight: 600;
+  color: #f1f5f9;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-role-badge {
+  font-size: 0.72rem;
+  background: rgba(251, 191, 36, 0.2);
+  color: var(--accent-color);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.auth-logout-btn {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.auth-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fff;
+}
+
+.mobile-auth-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.mobile-auth-btn {
+  justify-content: center;
+  padding: 12px;
+  font-size: 1rem;
+}
+
+.mobile-user-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  align-items: stretch;
+}
+
+.mobile-user-box .auth-user-chip {
+  justify-content: center;
+  padding: 10px;
+}
+
+.mobile-logout-btn {
+  justify-content: center;
+  padding: 10px;
+}
+
+/* Modal Styling */
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.auth-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: clamp(20px, 4vw, 32px);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(251, 191, 36, 0.1);
+  animation: modalScaleUp 0.25s ease-out;
+}
+
+@keyframes modalScaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.auth-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.auth-modal-title-group h3 {
+  margin: 4px 0 0 0;
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.auth-badge {
+  font-size: 0.78rem;
+  color: var(--accent-color);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auth-close-btn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: #94a3b8;
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.auth-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Tabs */
+.auth-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.auth-tab.active {
+  background: var(--accent-color);
+  color: #000;
+  box-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+}
+
+/* Role Selector */
+.auth-role-group {
+  margin-bottom: 16px;
+}
+
+.auth-role-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
+.auth-role-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-role-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.auth-role-btn.active {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* Input with Icon */
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+  font-size: 1.1rem;
+}
+
+.auth-input-wrapper input {
+  padding-left: 42px !important;
+  padding-right: 42px !important;
+}
+
+.auth-eye-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.auth-eye-btn:hover {
+  color: #fff;
+}
+
+.auth-row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.auth-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-checkbox-label.terms {
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.auth-text-link {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.auth-text-link:hover {
+  color: var(--accent-color);
+}
+
+.auth-helper-card {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px dashed rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 0.86rem;
+  color: #fef3c7;
+}
+
+.auth-helper-card p {
+  margin: 0 0 6px 0;
+}
+
+.auth-tg-link {
+  color: var(--accent-color);
+  font-weight: bold;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.auth-alert-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.auth-alert-box.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.auth-alert-box.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+}
+
+.auth-demo-section {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+  text-align: center;
+}
+
+.auth-demo-title {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auth-demo-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-demo-btn {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-demo-btn:hover {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.auth-switch-prompt {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: #94a3b8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-text-link-accent {
+  background: transparent;
+  border: none;
+  color: var(--accent-color);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+}
+
+.auth-text-link-accent:hover {
+  text-decoration: underline;
+}
+
+/* Order Form Banner */
+.auth-order-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #fef3c7;
+}
+
+.auth-order-banner-icon {
+  font-size: 1.2rem;
+}
+
+.auth-agency-tag {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #7dd3fc;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  margin-inline: 6px;
+}
+
+/* RTL Overrides for Auth */
+body.rtl .auth-nav-actions {
+  flex-direction: row-reverse;
+}
+
+body.rtl .auth-nav-user-group {
+  flex-direction: row-reverse;
+}
+
+body.rtl .auth-modal-header {
+  flex-direction: row-reverse;
+}
+
+body.rtl .auth-modal-title-group {
+  text-align: right;
+}
+
+body.rtl .auth-input-icon {
+  right: 14px;
+  left: auto;
+}
+
+body.rtl .auth-eye-btn {
+  left: 12px;
+  right: auto;
+}
+
+body.rtl .auth-row-between {
+  flex-direction: row-reverse;
+}
+
+body.rtl .auth-role-selector {
+  flex-direction: row-reverse;
+}
+
+body.rtl .auth-demo-buttons {
+  flex-direction: row-reverse;
+}
+```
+
+---
+
+#### 8. `Team/MAP.md`
+```markdown
+# AirboxVIP_Coffeenet - Project Map
+
+## Stack
+- Frontend: Vite/React at coffeenet.airboxvip.top
+- Bot: Python Telegram bot (telegram_bot/)
+- Storage: Cloudflare R2
+- Hosting: Vercel
+
+## Active Issues
+| # | Title | Status |
+|---|-------|--------|
+| #2 | Telegram + SQLite | In Progress |
+| #3 | Bot commands | In Progress |
+| #4 | Admin commands | In Progress |
+| #5 | MikroTik API | In Progress |
+| #6 | Deployment | In Progress |
+| #11 | Daily morning status report | Done |
+| #12 | Audit agy discussion responder workflow timeout | Done |
+| #16 | Align project identity and status role to کافینت ایرباکس وی آی پی | Done |
+| #17 | Fix (no output) in agy-issue-bot.yml result-collection step | Done |
+| #19 | Implement Sign In / Sign Up flow for Online Agency | Done |
+```
+
+---
+
+#### 9. `Team/WHERE_WE_ARE.md`
+```markdown
+# AirboxVIP_Coffeenet - Where We Are
+
+Last updated: 2026-09-13
+
+## Frontend
+- Live at coffeenet.airboxvip.top (Vercel + SSL)
+
+## Telegram Bot
+- Commands and admin management implemented (/start, /wifi, /status, /help, /vouchers, /revoke, /stats)
+- Issues #2-6 in progress
+
+## Automation & Reporting
+- Daily Morning Status Report workflow active (.github/workflows/tbs-morning.yml)
+- Master verification gates (15/15) + workflow safety checks
+- Issue #12 completed: AGY discussion responder timeout audited & remediated (.github/workflows/agy-discussion.yml)
+- Issue #16 completed: Project identity and role aligned to "کافینت ایرباکس وی آی پی" (replacing legacy/misnamed "ربات ووچر قهوه‌نت" in status feeds); audit report compiled in `docs/AUDIT_ISSUE_16_PROJECT_STATUS_ROLE_ALIGNMENT.md`.
+- Issue #17 completed: Fixed (no output) in agy-issue-bot.yml result-collection step by capturing CALLBACK_ID and reading Reports/agy/${CALLBACK_ID}.txt via GitHub Contents API.
+- Issue #19 completed: Implemented Sign In / Sign Up flow for Online Agency pivot (AuthContext, AuthModal, persistent auth state, bilingual translations, role selection for individual client and digital agency partner, order form autofill).
+- `@agy` <-> `@claude` handoff loop completed (`97a9051`): agy-issue-bot.yml now accepts `claude[bot]` comments as a trigger (not just a human OWNER), and each bot ends its final message with a mention of the other only when the task is genuinely, completely done -- so the two bots can hand work back and forth without a human relaying between them. The worker-URL footer was also reordered to come before agy's own output so a trailing `@claude` marker survives truncation on long outputs.
+
+## Next Steps
+1. Issue #2: Real Telegram + SQLite
+2. Issue #3: Bot commands
+3. Issue #4: Admin commands
+4. Issue #5: MikroTik API
+5. Issue #6: Deployment
+```
+
+---
+
+#### 10. `Team/CHANGELOG.md`
+```markdown
+# AirboxVIP_Coffeenet Changelog
+
+## 2026-09-13
+- Issue #19: Implement Sign In / Sign Up flow for Online Agency pivot (React/Vite)
+  - Created AuthContext with session persistence (airbox_auth_user), mock database (airbox_users_db), and pre-seeded demo accounts for instant evaluation
+  - Created responsive glassmorphic AuthModal with tabs for Sign In and Sign Up, role selection (individual client vs digital agency partner), validation, and Telegram support recovery
+  - Integrated auth state and actions into Navbar (desktop & mobile drawer) with live user chip and sign out functionality
+  - Enhanced OrderForm with user session auto-fill and authenticated client banner
+  - Added full bilingual translations (FA/EN) in translations.js and glassmorphism styling in index.css
+
+## 2026-09-12
+- Issue #17: Fix (no output) in agy-issue-bot.yml result-collection step by capturing CALLBACK_ID and reading Reports/agy/${CALLBACK_ID}.txt via GitHub Contents API instead of looking for unproduced agy_output.txt artifact
+- Issue #16: Align project identity and official Persian title to 'کافینت ایرباکس وی آی پی' (replacing legacy/misnamed 'ربات ووچر قهوه‌نت')
+- Document cross-account root cause in docs/AUDIT_ISSUE_16_PROJECT_STATUS_ROLE_ALIGNMENT.md detailing status-dashboard and Control-Room topic routing behavior
+- Update README.md, Team/START_HERE.md, Team/MAP.md, and Team/WHERE_WE_ARE.md
+
+## 2026-09-09
+- Issue #12: Audit agy discussion responder workflow timeout (.github/workflows/agy-discussion.yml) against Claud-Cloud-Project standards (docs/AUDIT_ISSUE_12_AGY_DISCUSSION_TIMEOUT.md)
+- Increase agy-discussion job timeout to 35m and extend polling loop to 60 iterations (1800s) to align with AGW worker 1700s/1680s timeouts
+- Implement 9-account worker dispatch rotation and 1-indexed acc_index in agy-discussion.yml per SECURITY_RULES.md Rule 5
+- Issue #11: Add daily morning status report workflow (.github/workflows/tbs-morning.yml)
+- Add report generator script (Tools/generate_morning_report.py) and test suite (tests/test_morning_report.py)
+
+## 2026-09-08
+- Add AGENTS.md with cross-account PAT mapping
+- Add Tools/run_gates.py verification script
+- Migrate files to repo root for Vercel
+- Update Cloudflare DNS to Vercel CNAME
+- Issue SSL certificate for coffeenet.airboxvip.top
+```
+
+---
+
+@claude
