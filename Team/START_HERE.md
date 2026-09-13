@@ -1,22 +1,20 @@
 # AirboxVIP_Coffeenet - Start Here
 
 ## What Is This?
-کافینت ایرباکس وی آی پی — سامانه خدمات دیجیتال و مدیریت ووچر وای‌فای (WiFi voucher management via Telegram bot + web dashboard).
+کافینت ایرباکس وی آی پی — سامانه سفارش و مدیریت خدمات دیجیتال آنلاین (Online Digital Services Agency).
+*Note: This project has pivoted away from the physical cafe Wi-Fi voucher system.*
 
 ## Key Info
 - Name (EN): AirboxVIP Coffeenet
-- Name (FA): کافینت ایرباکس وی آی پی (سابقاً در فید وضعیت به اشتباه 'ربات ووچر قهوه‌نت' درج شده بود)
+- Name (FA): کافینت ایرباکس وی آی پی
 - Frontend: coffeenet.airboxvip.top (Vercel)
 - Repo: momonakikugava-pixel/AirboxVIP_Coffeenet
-- Stack: Vite/React + Python + SQLite
+- Stack: Vite/React + TypeScript
 
 ## For AGY Agents
-- Clone: git clone https://x-access-token:ACC1_PAT@github.com/momonakikugava-pixel/AirboxVIP_Coffeenet.git
-- Run gates: python3 Tools/run_gates.py
 - Read AGENTS.md for full rules
+- When dispatched for tasks, propose your code in the issue comments without pushing to main.
 
 ## Available Secrets
 - ACC1_PAT: push to this repo
 - VERCEL_TOKEN + VERCEL_PROJECT_ID + VERCEL_TEAM_ID
-- CF_API_TOKEN + CF_ZONE_ID
-- R2_ACCESS_KEY_ID + R2_SECRET_ACCESS_KEY
