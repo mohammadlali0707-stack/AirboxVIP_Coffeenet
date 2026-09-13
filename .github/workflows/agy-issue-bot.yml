@@ -110,7 +110,7 @@ jobs:
           gh workflow run agw-worker.yml \
             --repo "$DISPATCH_REPO" \
             --field "prompt=$PROMPT" \
-            --field "target_repo=momonakikugava-pixel/AirboxVIP-Private" \
+            --field "target_repo=mohammadlali0707-stack/AirboxVIP-Private" \
             --field "target_branch=feature/online-services-pivot" \
             --field "acc_index=$(( ACC_IDX + 1 ))" \
             --field "callback_id=$CALLBACK_ID"
@@ -127,7 +127,7 @@ jobs:
             sleep 30
           done
 
-          GH_TOKEN="${{ secrets.ACC1_PAT }}" gh api "repos/momonakikugava-pixel/AirboxVIP-Private/contents/Reports/agy/${CALLBACK_ID}.txt" \
+          GH_TOKEN="${{ secrets.ACC6_PAT }}" gh api "repos/mohammadlali0707-stack/AirboxVIP-Private/contents/Reports/agy/${CALLBACK_ID}.txt" \
             --jq '.content' 2>/dev/null | base64 -d > /tmp/final_raw.txt || true
           if [ -s /tmp/final_raw.txt ]; then
             head -c 58000 /tmp/final_raw.txt > /tmp/final.txt
@@ -138,10 +138,11 @@ jobs:
       - name: Post result
         if: github.event_name != 'workflow_dispatch'
         env:
-          GH_TOKEN: ${{ secrets.ACC1_PAT }}
+          GH_TOKEN: ${{ secrets.ACC6_PAT }}
         run: |
           WORKER_URL="https://github.com/${{ steps.dispatch.outputs.dispatch_repo }}/actions/runs/${{ steps.dispatch.outputs.run_id }}"
           printf '*AGY worker: %s | acc: ${{ steps.prompt.outputs.acc_index }}*\n\n---\n\n%s\n' "$WORKER_URL" "$(cat /tmp/final.txt)" > /tmp/comment.txt
-          gh issue create --repo "momonakikugava-pixel/AirboxVIP-Private" \
+          gh issue create --repo "mohammadlali0707-stack/AirboxVIP-Private" \
             --title "Result for Public Order #${{ github.event.issue.number }}" \
             --body-file /tmp/comment.txt
+
