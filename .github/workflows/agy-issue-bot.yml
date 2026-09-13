@@ -2,26 +2,14 @@ name: AirboxVIP-Coffeenet AGY Issue Bot
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
   issue_comment:
     types: [created]
-  workflow_dispatch:
-    inputs:
-      prompt:
-        description: Prompt for AGY
-        required: false
-        type: string
-
-permissions:
-  issues: write
-  contents: write
 
 jobs:
-  agy-bot:
+  agy-dispatch:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     if: >
-      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' && (endsWith(github.event.issue.body, '@agy') || endsWith(github.event.issue.body, '@agy\n') || endsWith(github.event.issue.body, '@agy\r\n')) && (github.event.issue.author_association == 'OWNER' || github.event.issue.author_association == 'COLLABORATOR')) ||
       (github.event_name == 'issue_comment' && (endsWith(github.event.comment.body, '@agy') || endsWith(github.event.comment.body, '@agy\n') || endsWith(github.event.comment.body, '@agy\r\n')) && (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.user.login == 'claude[bot]'))
     steps:
@@ -35,7 +23,7 @@ jobs:
         run: |
           gh issue comment "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" \
-            --body "AGY is on it. Will reply when done."
+            --body "AGY is on it. The task is being securely processed in the Private Vault."
 
       - name: Build prompt
         id: prompt
@@ -45,15 +33,15 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          BRANCH='main'
+          BRANCH='feature/online-services-pivot'
           sanitize() { sed "s/\`/'/g; s/\"/'/g; s/\$(/DOLLAR(/g; s/\${/DOLLAR{/g"; }
           SAFE_TITLE=$(printf '%s' "$ISSUE_TITLE" | tr -d '`\\$')
           SAFE_BODY=$(printf '%s' "$ISSUE_BODY" | sanitize)
           SAFE_COMMENT=$(printf '%s' "$COMMENT_BODY" | sanitize)
           README=$(cat README.md 2>/dev/null | sanitize | head -50 || printf '%s' '(not found)')
           {
-            printf '%s\n' 'You are AGY, an AI software engineer for AirboxVIP-Coffeenet.'
-            printf '%s\n' 'This is a Telegram bot for managing WiFi vouchers at coffee shops.'
+            printf '%s\n' 'You are AGY, an AI software engineer for AirboxVIP.'
+            printf '%s\n' 'This is an online digital services agency (React/Vite project).'
             printf 'Active branch: %s\n' "$BRANCH"
             printf '%s\n' ''
             printf '%s\n' '=== WORKING TREE ==='
@@ -81,13 +69,10 @@ jobs:
             printf '%s\n' ''
             printf '%s\n' '=== REQUIRED STEPS ==='
             printf '%s\n' 'STEP 0: Read the files relevant to this task and print a short DETAILED'
-            printf '%s\n' '  planning checklist to stdout (exact file + function + evidence per item).'
-            printf '%s\n' '  This is printed output only -- do not post it anywhere yourself.'
-            printf '%s\n' 'STEP 1: Implement the task.'
-            printf '%s\n' 'STEP 2: python3 Tools/run_gates.py (must pass).'
-            printf '%s\n' 'STEP 3: git add -A && git commit -m YOUR_COMMIT_MESSAGE  (no push -- see above)'
-            printf '%s\n' 'STEP 4: Print a final report to stdout, including the commit hash you made.'
-            printf '%s\n' 'When you have COMPLETELY finished this task -- not a partial draft, nothing left to do -- end your final report with the line @claude on its own line, so Claude can continue from your result. If you are not fully done, do not include that line.'
+            printf '%s\n' '  planning checklist to stdout.'
+            printf '%s\n' 'STEP 1: Implement the task (create Vite app if not exists, write code).'
+            printf '%s\n' 'STEP 2: git add -A && git commit -m YOUR_COMMIT_MESSAGE  (no push -- see above)'
+            printf '%s\n' 'STEP 3: Print a final report containing your complete proposed code to stdout.'
           } > /tmp/prompt.txt
           ACC_IDX=$(( ISSUE_NUM % 9 ))
           echo "acc_index=$ACC_IDX" >> "$GITHUB_OUTPUT"
@@ -121,11 +106,12 @@ jobs:
           echo "Dispatching issue #${{ github.event.issue.number }} to $DISPATCH_REPO (acc=$ACC_IDX)"
           PROMPT=$(cat /tmp/prompt.txt)
           CALLBACK_ID="av-${{ github.event.issue.number }}-${{ github.run_id }}"
+          
           gh workflow run agw-worker.yml \
             --repo "$DISPATCH_REPO" \
             --field "prompt=$PROMPT" \
             --field "target_repo=momonakikugava-pixel/AirboxVIP-Private" \
-            --field "target_branch=main" \
+            --field "target_branch=feature/online-services-pivot" \
             --field "acc_index=$(( ACC_IDX + 1 ))" \
             --field "callback_id=$CALLBACK_ID"
           sleep 10
@@ -141,7 +127,7 @@ jobs:
             sleep 30
           done
 
-          GH_TOKEN="${{ secrets.GITHUB_TOKEN }}" gh api "repos/${{ github.repository }}/contents/Reports/agy/${CALLBACK_ID}.txt" \
+          GH_TOKEN="${{ secrets.ACC1_PAT }}" gh api "repos/momonakikugava-pixel/AirboxVIP-Private/contents/Reports/agy/${CALLBACK_ID}.txt" \
             --jq '.content' 2>/dev/null | base64 -d > /tmp/final_raw.txt || true
           if [ -s /tmp/final_raw.txt ]; then
             head -c 58000 /tmp/final_raw.txt > /tmp/final.txt
@@ -152,10 +138,10 @@ jobs:
       - name: Post result
         if: github.event_name != 'workflow_dispatch'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACC1_PAT }}
         run: |
           WORKER_URL="https://github.com/${{ steps.dispatch.outputs.dispatch_repo }}/actions/runs/${{ steps.dispatch.outputs.run_id }}"
           printf '*AGY worker: %s | acc: ${{ steps.prompt.outputs.acc_index }}*\n\n---\n\n%s\n' "$WORKER_URL" "$(cat /tmp/final.txt)" > /tmp/comment.txt
-          gh issue comment "${{ github.event.issue.number }}" \
-            --repo "${{ github.repository }}" \
+          gh issue create --repo "momonakikugava-pixel/AirboxVIP-Private" \
+            --title "Result for Public Order #${{ github.event.issue.number }}" \
             --body-file /tmp/comment.txt
