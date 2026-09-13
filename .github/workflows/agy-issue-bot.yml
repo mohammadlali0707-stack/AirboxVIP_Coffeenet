@@ -87,7 +87,7 @@ jobs:
             printf '%s\n' 'STEP 2: python3 Tools/run_gates.py (must pass).'
             printf '%s\n' 'STEP 3: git add -A && git commit -m YOUR_COMMIT_MESSAGE  (no push -- see above)'
             printf '%s\n' 'STEP 4: Print a final report to stdout, including the commit hash you made.'
-            printf '%s\n' 'When you have COMPLETELY finished this task -- not a partial draft, nothing left to do -- end your final report with the line "@claude" on its own line, so Claude can continue from your result. If you are not fully done, do not include that line.'
+            printf '%s\n' 'When you have COMPLETELY finished this task -- not a partial draft, nothing left to do -- end your final report with the line @claude on its own line, so Claude can continue from your result. If you are not fully done, do not include that line.'
           } > /tmp/prompt.txt
           ACC_IDX=$(( ISSUE_NUM % 9 ))
           echo "acc_index=$ACC_IDX" >> "$GITHUB_OUTPUT"

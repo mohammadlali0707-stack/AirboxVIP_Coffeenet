@@ -1,5 +1,13 @@
 # AirboxVIP_Coffeenet Changelog
 
+## 2026-09-13
+- Issue #19: Implement Sign In / Sign Up flow for Online Agency pivot (React/Vite)
+  - Created AuthContext with session persistence (airbox_auth_user), mock database (airbox_users_db), and pre-seeded demo accounts for instant evaluation
+  - Created responsive glassmorphic AuthModal with tabs for Sign In and Sign Up, role selection (individual client vs digital agency partner), validation, and Telegram support recovery
+  - Integrated auth state and actions into Navbar (desktop & mobile drawer) with live user chip and sign out functionality
+  - Enhanced OrderForm with user session auto-fill and authenticated client banner
+  - Added full bilingual translations (FA/EN) in translations.js and glassmorphism styling in index.css
+
 ## 2026-09-12
 - Issue #17: Fix (no output) in agy-issue-bot.yml result-collection step by capturing CALLBACK_ID and reading Reports/agy/${CALLBACK_ID}.txt via GitHub Contents API instead of looking for unproduced agy_output.txt artifact
 - Issue #16: Align project identity and official Persian title to 'کافینت ایرباکس وی آی پی' (replacing legacy/misnamed 'ربات ووچر قهوه‌نت')

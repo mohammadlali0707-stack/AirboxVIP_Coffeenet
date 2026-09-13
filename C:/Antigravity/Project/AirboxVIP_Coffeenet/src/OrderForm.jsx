@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { useLanguage } from './LanguageContext';
+import { useAuth } from './AuthContext';
 import useScrollAnimation from './useScrollAnimation';
 
 export default function OrderForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ name: '', phone: '', service: '', details: '', fileName: '' });
   const { t } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
   const formRef = useScrollAnimation();
+  const [formData, setFormData] = useState(() => ({
+    name: user?.name || '',
+    phone: user?.phone || user?.email || '',
+    service: '',
+    details: '',
+    fileName: ''
+  }));
 
   const serviceLabels = {
     university: t.order.servicesList?.university || 'ثبت‌نام دانشگاهی و آزمون‌ها',
@@ -22,7 +30,13 @@ export default function OrderForm() {
 
   const getTelegramUrl = () => {
     const serviceName = serviceLabels[formData.service] || formData.service || 'سایر';
-    const message = `سلام، درخواست جدید خدمات VIP:\n\n👤 نام: ${formData.name}\n📱 تماس/آیدی: ${formData.phone}\n📋 نوع خدمت: ${serviceName}${formData.details ? `\n📝 توضیحات: ${formData.details}` : ''}`;
+    const clientTypeStr = user?.role === 'agency' ? ` (آژانس: ${user.agencyName || user.name})` : '';
+    const message = `سلام، درخواست جدید خدمات VIP:
+
+👤 نام: ${formData.name}${clientTypeStr}
+📱 تماس/آیدی: ${formData.phone}
+📋 نوع خدمت: ${serviceName}${formData.details ? `
+📝 توضیحات: ${formData.details}` : ''}`;
     return `https://t.me/airboxvip_admin?text=${encodeURIComponent(message)}`;
   };
 
@@ -32,12 +46,18 @@ export default function OrderForm() {
     const newOrder = {
       id: 'ORD-' + Date.now(),
       ...formData,
+      userId: user?.id || null,
+      userRole: user?.role || 'guest',
       createdAt: new Date().toISOString()
     };
     
     // Save locally
-    const existingOrders = JSON.parse(localStorage.getItem('airbox_orders') || '[]');
-    localStorage.setItem('airbox_orders', JSON.stringify([...existingOrders, newOrder]));
+    try {
+      const existingOrders = JSON.parse(localStorage.getItem('airbox_orders') || '[]');
+      localStorage.setItem('airbox_orders', JSON.stringify([...existingOrders, newOrder]));
+    } catch {
+      // Ignore
+    }
 
     const tgUrl = getTelegramUrl();
     window.open(tgUrl, '_blank');
@@ -55,7 +75,13 @@ export default function OrderForm() {
   };
 
   const handleReset = () => {
-    setFormData({ name: '', phone: '', service: '', details: '', fileName: '' });
+    setFormData({
+      name: user?.name || '',
+      phone: user?.phone || user?.email || '',
+      service: '',
+      details: '',
+      fileName: ''
+    });
     setSubmitted(false);
   };
 
@@ -63,6 +89,21 @@ export default function OrderForm() {
     <section id="order" className="order-section">
       <div ref={formRef} className="form-container glass fade-in slide-up">
         <h2>{t.order.title}</h2>
+
+        {/* Authenticated user status banner */}
+        {isAuthenticated && !submitted && (
+          <div className="auth-order-banner">
+            <span className="auth-order-banner-icon">💠</span>
+            <div className="auth-order-banner-text">
+              <span>{t.auth?.orderBanner || 'Ordering as:'} </span>
+              <strong>{user.name}</strong> ({user.phone || user.email})
+              {user.role === 'agency' && (
+                <span className="auth-agency-tag"> 🏢 {user.agencyName || (t.auth?.roleAgency || 'Agency')}</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {submitted ? (
           <div className="success-message">
             <span className="success-icon">✨</span>

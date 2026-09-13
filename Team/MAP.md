@@ -18,3 +18,4 @@
 | #12 | Audit agy discussion responder workflow timeout | Done |
 | #16 | Align project identity and status role to کافینت ایرباکس وی آی پی | Done |
 | #17 | Fix (no output) in agy-issue-bot.yml result-collection step | Done |
+| #19 | Implement Sign In / Sign Up flow for Online Agency | Done |
