@@ -124,7 +124,7 @@ jobs:
           gh workflow run agw-worker.yml \
             --repo "$DISPATCH_REPO" \
             --field "prompt=$PROMPT" \
-            --field "target_repo=momonakikugava-pixel/AirboxVIP_Coffeenet" \
+            --field "target_repo=momonakikugava-pixel/AirboxVIP-Private" \
             --field "target_branch=main" \
             --field "acc_index=$(( ACC_IDX + 1 ))" \
             --field "callback_id=$CALLBACK_ID"
